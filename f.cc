@@ -1,59 +1,143 @@
 //
-// This is a little program that unpacks a 32-bit floating point value
+// This is a little program that unpacks a 32-bit floating point value (letting
+// std::bitset do the bitarray printing)
 //
-//
-#include <string.h>
-
 #include <bitset>
+#include <cstdint>
+#include <cstring>
 #include <format>
 #include <iostream>
 #include <string>
+#include <limits>
 
-int main( int argc, char** argv )
+void print_float32_representation( float f )
 {
-    float f = 0;
-    static_assert( sizeof(f) == 4 );
+    static_assert( sizeof( f ) == 4 );
+    static_assert(std::numeric_limits<float>::is_iec559, "IEEE 754 required");
 
-    if ( argc == 2 )
-    {
-        f = std::stof( argv[1] );
-    }
-
-    unsigned x;
-    memcpy( &x, &f, 4 );
-    char h[10];
-    snprintf( h, sizeof( h ), "%08X", x );
+    std::uint32_t x;
+    std::memcpy( &x, &f, 4 );
 
     std::bitset<32> b = x;
     std::string bs = b.to_string();
-    int exponent = ( x >> 23 ) & 0xFF;
+    std::uint32_t mantissa = x & ( ( 1 << 23 ) - 1 );
+    std::uint32_t exponent_with_bias = ( x >> 23 ) & 0xFF;
+    std::int32_t exponent;
 
-    // special case: zero has all zero exponent bits, as well as mantissa bits:
-    if ( exponent )
+    if ( exponent_with_bias && exponent_with_bias != 255 )
     {
-        exponent -= 127;
+        exponent = (std::int32_t)exponent_with_bias - 127;    // Normal
     }
-    unsigned sign = x >> 31;
+    else if ( exponent_with_bias == 0 && mantissa != 0 )
+    {
+        exponent = -126;    // Denormal
+    }
+    else
+    {
+        exponent = 0;    // Zero or special cases
+    }
+
+    std::uint32_t sign = x >> 31;
 
     auto mstring = bs.substr( 9, 23 );
     auto estring = bs.substr( 1, 8 );
 
-    std::cout << std::format(
-        "hex:      {}\n"
-        "bits:     {}\n"
-        "sign:     {}\n"
-        "exponent:  {}                        (127 {}{})\n"
-        "mantissa:          {}\n",
-        h,
-	b.to_string(),
-	sign,
-	estring, exponent >= 0 ? "+" : "", exponent,
-	mstring );
+    if (exponent_with_bias == 255) {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {:08X}\n"
+            "bits:     {}\n"
+            "sign:     {}\n"
+            "exponent:  {}\n"
+            "mantissa:          {}\n",
+            f, x, b.to_string(), sign, estring, mstring);
+    } else {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {:08X}\n"
+            "bits:     {}\n"
+            "sign:     {}\n"
+            "exponent:  {}                        ({}{}{})\n"
+            "mantissa:          {}\n",
+            f, x, b.to_string(), sign,
+            estring, exponent_with_bias ? "127 " : "0", exponent >= 0 ? "+" : "", exponent,
+            mstring );
+    }
 
-    if ( x )
+    if ( exponent_with_bias == 255 )
     {
-        std::cout << std::format( "number:         {}1.{} x 2^({})\n", (sign ? "-" : " "), mstring, exponent );
+        if ( mantissa == 0 )
+        {
+            std::cout << std::format( "number:   {}\n\n",
+                                      sign ? "-inf" : "+inf" );
+        }
+        else
+        {
+            std::cout << "number:   NaN\n\n";
+        }
+    }
+    else if ( !exponent_with_bias && mantissa )
+    {
+        // Denormal: exponent is -126, no implicit leading 1
+        std::cout << std::format( "number:         {}0.{} x 2^({})\n\n",
+                                  ( sign ? "-" : " " ), mstring, -126 );
+    }
+    else
+    {
+        std::cout << std::format( "number:         {}{}.{} x 2^({})\n\n",
+                                  ( sign ? "-" : " " ), x ? 1 : 0, mstring,
+                                  exponent );
+    }
+}
+
+int main( int argc, char** argv )
+{
+    if ( argc == 1 )
+    {
+        std::cout << "Usage example: ./f 1 -2 6 1.5 0.125 -inf\nNo parameters will test special cases:\n";
+
+        float tests[] = { 0.0f, std::numeric_limits<float>::infinity(),
+                          -std::numeric_limits<float>::infinity(),
+                          std::numeric_limits<float>::quiet_NaN() };
+
+        for ( float test : tests )
+        {
+            std::cout << "\nTest value: " << test << "\n";
+            print_float32_representation( test );
+        }
+
+        float f;
+        // Test denormals
+        std::cout << "\nSmallest denormal:\n";
+        std::uint32_t denormal_bits = 0x00000001;
+        std::memcpy( &f, &denormal_bits, sizeof( float ) );
+        print_float32_representation( f );
+
+        std::cout << "\nLargest denormal:\n";
+        denormal_bits = 0x007FFFFF;
+        std::memcpy( &f, &denormal_bits, sizeof( float ) );
+        print_float32_representation( f );
+
+        return 0;
+    }
+
+    for ( int i = 1; i < argc; i++ )
+    {
+        try
+        {
+            float f = std::stof( argv[i] );
+
+            print_float32_representation( f );
+        }
+        catch ( std::exception& e )
+        {
+            std::cerr << std::format(
+                "Failed to convert input '{}' to floating point. error: {}\n",
+                argv[i], e.what() );
+        }
     }
 
     return 0;
 }
+
+// vim: et ts=4 sw=4
