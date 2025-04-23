@@ -34,7 +34,7 @@ void print_float32_representation( float f )
     }
     else
     {
-        exponent = 0;    // Zero or special cases
+        exponent = 0;    // Zero
     }
 
     std::uint32_t sign = x >> 31;
@@ -94,11 +94,13 @@ int main( int argc, char** argv )
 {
     if ( argc == 1 )
     {
-        std::cout << "Usage example: ./f 1 -2 6 1.5 0.125 -inf\nNo parameters will test special cases:\n";
+        std::cout << "Usage example:\n\n./floatexplorer 1 -2 6 1.5 0.125 -inf\n\nNo parameters will test special cases:\n";
 
         float tests[] = { 0.0f, std::numeric_limits<float>::infinity(),
                           -std::numeric_limits<float>::infinity(),
-                          std::numeric_limits<float>::quiet_NaN() };
+                          std::numeric_limits<float>::quiet_NaN(),
+                          1.17549435e-38f, // Smallest normal
+                          3.4028235e38f }; // Largest normal
 
         for ( float test : tests )
         {

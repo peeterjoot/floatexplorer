@@ -1,4 +1,9 @@
 CXXFLAGS += -g
 CXXFLAGS += -std=c++20
 
-all : f
+all : floatexplorer
+
+clean:
+	rm -f floatexplorer
+
+# vim: noet ts=8 sw=8
