@@ -52,7 +52,7 @@ void print_float32_representation( float f )
     if (exponent_with_bias == FLOAT32_EXPONENT_MASK) {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:08X}\n"
+            "hex:      {:016X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}\n"
@@ -61,7 +61,7 @@ void print_float32_representation( float f )
     } else {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:08X}\n"
+            "hex:      {:016X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}                        ({}{}{})\n"
@@ -187,9 +187,9 @@ void printHelpAndExit()
     std::cout <<
         "floatexplorer [--float] [--double] [--special] number [number]*\n\n"
         "Examples:\n"
-        "floatexplorer 1 -2 6 1.5 0.125 -inf\n"
+        "floatexplorer 1 -2 6 1.5 0.125 -inf # --float is the default\n"
         "floatexplorer --double 1 -2 6 1.5 0.125 -inf\n"
-        "floatexplorer --float double 1\n";
+        "floatexplorer --float --double 1 # both representations\n";
 
     std::exit(0);
 }
@@ -239,11 +239,6 @@ int main( int argc, char** argv )
         dofloat = true;
     }
 
-    if ( argc == optind )
-    {
-        printHelpAndExit();
-    }
-
     if ( specialcases )
     {
         if ( dofloat )
@@ -255,7 +250,7 @@ int main( int argc, char** argv )
                               1.17549435e-38f,    // Smallest normal
                               3.4028235e38f };    // Largest normal
 
-            for ( float test : tests )
+            for ( auto test : tests )
             {
                 std::cout << "\nTest value: " << test << "\n";
                 print_float32_representation( test );
@@ -270,7 +265,7 @@ int main( int argc, char** argv )
 
             std::cout << "\nLargest denormal:\n";
             denormal_bits =
-                ( std::uint32_t( 1 ) << ( FLOAT32_MANTISSA_BITS + 1 ) ) - 1;
+                ( std::uint32_t( 1 ) << FLOAT32_MANTISSA_BITS ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( float ) );
             print_float32_representation( f );
         }
@@ -279,14 +274,14 @@ int main( int argc, char** argv )
         {
             double tests[] = {
                 0.0f,
-                std::numeric_limits<float>::infinity(),
-                -std::numeric_limits<float>::infinity(),
-                std::numeric_limits<float>::quiet_NaN(),
-                5e-324d,                    // Smallest normal
-                4.4501477170144023e-308d    // Largest normal
+                std::numeric_limits<double>::infinity(),
+                -std::numeric_limits<double>::infinity(),
+                std::numeric_limits<double>::quiet_NaN(),
+                2.2250738585072014e-308, // Smallest normal double
+                1.7976931348623157e308    // Largest normal double
             };
 
-            for ( float test : tests )
+            for ( auto test : tests )
             {
                 std::cout << "\nTest value: " << test << "\n";
                 print_float64_representation( test );
@@ -301,12 +296,14 @@ int main( int argc, char** argv )
 
             std::cout << "\nLargest denormal:\n";
             denormal_bits =
-                ( std::uint64_t( 1 ) << ( FLOAT64_MANTISSA_BITS + 1 ) ) - 1;
+                ( std::uint64_t( 1 ) << FLOAT64_MANTISSA_BITS ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( double ) );
             print_float64_representation( f );
         }
-
-        return 0;
+    }
+    else if ( argc == optind )
+    {
+        printHelpAndExit();
     }
 
     for ( int i = optind; i < argc; i++ )
