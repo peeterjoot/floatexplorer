@@ -1,6 +1,6 @@
 ## floatexplorer
 
-This is a little bit of code to dump the representation of a 32-bit C float type, assuming an IEEE representation.
+This is a little bit of code to dump the representation of 32-bit, and 64-bit C float/double type, assuming an IEEE representation.
 
 Described here:
 
