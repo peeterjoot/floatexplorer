@@ -52,7 +52,7 @@ void print_float32_representation( float f )
     if (exponent_with_bias == FLOAT32_EXPONENT_MASK) {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:016X}\n"
+            "hex:      {:08X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}\n"
@@ -61,7 +61,7 @@ void print_float32_representation( float f )
     } else {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:016X}\n"
+            "hex:      {:08X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}                        ({}{}{})\n"
@@ -137,7 +137,7 @@ void print_float64_representation( double f )
     if (exponent_with_bias == FLOAT64_EXPONENT_MASK) {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:08X}\n"
+            "hex:      {:016X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}\n"
@@ -146,7 +146,7 @@ void print_float64_representation( double f )
     } else {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:08X}\n"
+            "hex:      {:016X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}                                                     ({}{}{})\n"
@@ -273,7 +273,7 @@ int main( int argc, char** argv )
         if ( dodouble )
         {
             double tests[] = {
-                0.0f,
+                0.0d,
                 std::numeric_limits<double>::infinity(),
                 -std::numeric_limits<double>::infinity(),
                 std::numeric_limits<double>::quiet_NaN(),
