@@ -1,0 +1,80 @@
+
+Test value: 0
+value:    0
+hex:      00000000
+bits:     00000000000000000000000000000000
+sign:     0
+exponent:  00000000                        (0+0)
+mantissa:          00000000000000000000000
+number:          0.00000000000000000000000 x 2^(0)
+
+
+Test value: inf
+value:    inf
+hex:      7F800000
+bits:     01111111100000000000000000000000
+sign:     0
+exponent:  11111111
+mantissa:          00000000000000000000000
+number:   +inf
+
+
+Test value: -inf
+value:    -inf
+hex:      FF800000
+bits:     11111111100000000000000000000000
+sign:     1
+exponent:  11111111
+mantissa:          00000000000000000000000
+number:   -inf
+
+
+Test value: nan
+value:    nan
+hex:      7FC00000
+bits:     01111111110000000000000000000000
+sign:     0
+exponent:  11111111
+mantissa:          10000000000000000000000
+number:   NaN
+
+
+Test value: 1.17549e-38
+value:    1.1754944e-38
+hex:      00800000
+bits:     00000000100000000000000000000000
+sign:     0
+exponent:  00000001                        (127 -126)
+mantissa:          00000000000000000000000
+number:          1.00000000000000000000000 x 2^(-126)
+
+
+Test value: 3.40282e+38
+value:    3.4028235e+38
+hex:      7F7FFFFF
+bits:     01111111011111111111111111111111
+sign:     0
+exponent:  11111110                        (127 +127)
+mantissa:          11111111111111111111111
+number:          1.11111111111111111111111 x 2^(127)
+
+
+Smallest denormal:
+value:    1e-45
+hex:      00000001
+bits:     00000000000000000000000000000001
+sign:     0
+exponent:  00000000                        (0-126)
+mantissa:          00000000000000000000001
+number:          0.00000000000000000000001 x 2^(4294967170)
+
+
+Largest denormal:
+value:    1.1754942e-38
+hex:      007FFFFF
+bits:     00000000011111111111111111111111
+sign:     0
+exponent:  00000000                        (0-126)
+mantissa:          11111111111111111111111
+number:          0.11111111111111111111111 x 2^(4294967170)
+

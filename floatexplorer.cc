@@ -16,7 +16,6 @@
 #define FLOAT32_EXPONENT_BITS           8
 #define FLOAT32_EXPONENT_MASK           ( (std::uint32_t(1) << FLOAT32_EXPONENT_BITS) - 1 )
 #define FLOAT32_EXPONENT_BIAS           ( (std::uint32_t(1) << ( FLOAT32_EXPONENT_BITS - 1 ) ) -1 )
-#define FLOAT32_EXPONENT_BIAS_STRING    "127 "
 void print_float32_representation( float f )
 {
     static_assert( sizeof( f ) == sizeof( std::uint32_t ) );
@@ -64,10 +63,13 @@ void print_float32_representation( float f )
             "hex:      {:08X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
-            "exponent:  {}                        ({}{}{})\n"
+            "exponent:  {}                        ({}{}{}{})\n"
             "mantissa:          {}\n",
             f, x, b.to_string(), sign,
-            estring, exponent_with_bias ? FLOAT32_EXPONENT_BIAS_STRING : "0", exponent >= 0 ? "+" : "", exponent,
+            estring,
+            exponent_with_bias ? FLOAT32_EXPONENT_BIAS : 0,
+            exponent_with_bias ? " " : "",
+            exponent >= 0 ? "+" : "", exponent,
             mstring );
     }
 
@@ -101,7 +103,6 @@ void print_float32_representation( float f )
 #define FLOAT64_EXPONENT_BITS           11
 #define FLOAT64_EXPONENT_MASK           ( (std::uint64_t(1) << FLOAT64_EXPONENT_BITS) - 1 )
 #define FLOAT64_EXPONENT_BIAS           ( (std::uint64_t(1) << ( FLOAT64_EXPONENT_BITS - 1 ) ) -1 )
-#define FLOAT64_EXPONENT_BIAS_STRING    "1023 "
 void print_float64_representation( double f )
 {
     static_assert( sizeof( f ) == sizeof( std::uint64_t ) );
@@ -149,10 +150,13 @@ void print_float64_representation( double f )
             "hex:      {:016X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
-            "exponent:  {}                                                     ({}{}{})\n"
+            "exponent:  {}                                                     ({}{}{}{})\n"
             "mantissa:             {}\n",
             f, x, b.to_string(), sign,
-            estring, exponent_with_bias ? FLOAT64_EXPONENT_BIAS_STRING : "0", exponent >= 0 ? "+" : "", exponent,
+            estring,
+            exponent_with_bias ? FLOAT64_EXPONENT_BIAS : 0,
+            exponent_with_bias ? " " : "",
+            exponent >= 0 ? "+" : "", exponent,
             mstring );
     }
 
