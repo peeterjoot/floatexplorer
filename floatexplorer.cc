@@ -2,53 +2,63 @@
 // This is a little program that unpacks a 32-bit floating point value (letting
 // std::bitset do the bitarray printing)
 //
+#include <getopt.h>
+#include <strings.h>
+
 #include <bitset>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <format>
 #include <iostream>
-#include <string>
 #include <limits>
-#include <getopt.h>
+#include <string>
+#include <climits>
 
-#define FLOAT32_MANTISSA_BITS           23
-#define FLOAT32_EXPONENT_BITS           8
-#define FLOAT32_EXPONENT_MASK           ( (std::uint32_t(1) << FLOAT32_EXPONENT_BITS) - 1 )
-#define FLOAT32_EXPONENT_BIAS           ( (std::uint32_t(1) << ( FLOAT32_EXPONENT_BITS - 1 ) ) -1 )
+#define FLOAT32_MANTISSA_BITS 23
+#define FLOAT32_EXPONENT_BITS 8
+#define FLOAT32_EXPONENT_MASK \
+    ( ( std::uint32_t( 1 ) << FLOAT32_EXPONENT_BITS ) - 1 )
+#define FLOAT32_EXPONENT_BIAS \
+    ( ( std::uint32_t( 1 ) << ( FLOAT32_EXPONENT_BITS - 1 ) ) - 1 )
 void print_float32_representation( float f )
 {
     static_assert( sizeof( f ) == sizeof( std::uint32_t ) );
-    static_assert(std::numeric_limits<float>::is_iec559, "IEEE 754 required");
+    static_assert( std::numeric_limits<float>::is_iec559, "IEEE 754 required" );
 
     std::uint32_t x;
-    std::memcpy( &x, &f, sizeof(f) );
+    std::memcpy( &x, &f, sizeof( f ) );
 
     std::bitset<32> b = x;
     std::string bs = b.to_string();
-    std::uint32_t mantissa = x & ( ( std::uint32_t(1) << FLOAT32_MANTISSA_BITS ) - 1 );
-    std::uint32_t exponent_with_bias = ( x >> FLOAT32_MANTISSA_BITS ) & FLOAT32_EXPONENT_MASK;
+    std::uint32_t mantissa =
+        x & ( ( std::uint32_t( 1 ) << FLOAT32_MANTISSA_BITS ) - 1 );
+    std::uint32_t exponent_with_bias =
+        ( x >> FLOAT32_MANTISSA_BITS ) & FLOAT32_EXPONENT_MASK;
     std::int32_t exponent;
 
     if ( exponent_with_bias && exponent_with_bias != FLOAT32_EXPONENT_MASK )
     {
-        exponent = (std::int32_t)exponent_with_bias - FLOAT32_EXPONENT_BIAS;    // Normal
+        exponent = (std::int32_t)exponent_with_bias -
+                   FLOAT32_EXPONENT_BIAS;    // Normal
     }
     else if ( exponent_with_bias == 0 && mantissa != 0 )
     {
-        exponent = -(FLOAT32_EXPONENT_BIAS-1);    // Denormal
+        exponent = -( FLOAT32_EXPONENT_BIAS - 1 );    // Denormal
     }
     else
     {
         exponent = 0;    // Zero
     }
 
-    std::uint32_t sign = x >> (FLOAT32_EXPONENT_BITS + FLOAT32_MANTISSA_BITS);
+    std::uint32_t sign = x >> ( FLOAT32_EXPONENT_BITS + FLOAT32_MANTISSA_BITS );
 
-    auto mstring = bs.substr( 1 + FLOAT32_EXPONENT_BITS, FLOAT32_MANTISSA_BITS );
+    auto mstring =
+        bs.substr( 1 + FLOAT32_EXPONENT_BITS, FLOAT32_MANTISSA_BITS );
     auto estring = bs.substr( 1, FLOAT32_EXPONENT_BITS );
 
-    if (exponent_with_bias == FLOAT32_EXPONENT_MASK) {
+    if ( exponent_with_bias == FLOAT32_EXPONENT_MASK )
+    {
         std::cout << std::format(
             "value:    {}\n"
             "hex:      {:08X}\n"
@@ -56,8 +66,10 @@ void print_float32_representation( float f )
             "sign:     {}\n"
             "exponent:  {}\n"
             "mantissa:          {}\n",
-            f, x, b.to_string(), sign, estring, mstring);
-    } else {
+            f, x, b.to_string(), sign, estring, mstring );
+    }
+    else
+    {
         std::cout << std::format(
             "value:    {}\n"
             "hex:      {:08X}\n"
@@ -65,11 +77,9 @@ void print_float32_representation( float f )
             "sign:     {}\n"
             "exponent:  {}                        ({}{}{}{})\n"
             "mantissa:          {}\n",
-            f, x, b.to_string(), sign,
-            estring,
+            f, x, b.to_string(), sign, estring,
             exponent_with_bias ? FLOAT32_EXPONENT_BIAS : 0,
-            exponent_with_bias ? " " : "",
-            exponent >= 0 ? "+" : "", exponent,
+            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent,
             mstring );
     }
 
@@ -89,7 +99,8 @@ void print_float32_representation( float f )
     {
         // Denormal: exponent is -126, no implicit leading 1
         std::cout << std::format( "number:         {}0.{} x 2^({})\n\n",
-                                  ( sign ? "-" : " " ), mstring, -(FLOAT32_EXPONENT_BIAS-1) );
+                                  ( sign ? "-" : " " ), mstring,
+                                  -( FLOAT32_EXPONENT_BIAS - 1 ) );
     }
     else
     {
@@ -99,43 +110,51 @@ void print_float32_representation( float f )
     }
 }
 
-#define FLOAT64_MANTISSA_BITS           52
-#define FLOAT64_EXPONENT_BITS           11
-#define FLOAT64_EXPONENT_MASK           ( (std::uint64_t(1) << FLOAT64_EXPONENT_BITS) - 1 )
-#define FLOAT64_EXPONENT_BIAS           ( (std::uint64_t(1) << ( FLOAT64_EXPONENT_BITS - 1 ) ) -1 )
+#define FLOAT64_MANTISSA_BITS 52
+#define FLOAT64_EXPONENT_BITS 11
+#define FLOAT64_EXPONENT_MASK \
+    ( ( std::uint64_t( 1 ) << FLOAT64_EXPONENT_BITS ) - 1 )
+#define FLOAT64_EXPONENT_BIAS \
+    ( ( std::uint64_t( 1 ) << ( FLOAT64_EXPONENT_BITS - 1 ) ) - 1 )
 void print_float64_representation( double f )
 {
     static_assert( sizeof( f ) == sizeof( std::uint64_t ) );
-    static_assert(std::numeric_limits<double>::is_iec559, "IEEE 754 required");
+    static_assert( std::numeric_limits<double>::is_iec559,
+                   "IEEE 754 required" );
 
     std::uint64_t x;
-    std::memcpy( &x, &f, sizeof(f) );
+    std::memcpy( &x, &f, sizeof( f ) );
 
     std::bitset<64> b = x;
     std::string bs = b.to_string();
-    std::uint64_t mantissa = x & ( ( std::uint64_t(1) << FLOAT64_MANTISSA_BITS ) - 1 );
-    std::uint64_t exponent_with_bias = ( x >> FLOAT64_MANTISSA_BITS ) & FLOAT64_EXPONENT_MASK;
+    std::uint64_t mantissa =
+        x & ( ( std::uint64_t( 1 ) << FLOAT64_MANTISSA_BITS ) - 1 );
+    std::uint64_t exponent_with_bias =
+        ( x >> FLOAT64_MANTISSA_BITS ) & FLOAT64_EXPONENT_MASK;
     std::int64_t exponent;
 
     if ( exponent_with_bias && exponent_with_bias != FLOAT64_EXPONENT_MASK )
     {
-        exponent = (std::int64_t)exponent_with_bias - FLOAT64_EXPONENT_BIAS;    // Normal
+        exponent = (std::int64_t)exponent_with_bias -
+                   FLOAT64_EXPONENT_BIAS;    // Normal
     }
     else if ( exponent_with_bias == 0 && mantissa != 0 )
     {
-        exponent = -(FLOAT64_EXPONENT_BIAS-1);    // Denormal
+        exponent = -( FLOAT64_EXPONENT_BIAS - 1 );    // Denormal
     }
     else
     {
         exponent = 0;    // Zero
     }
 
-    std::uint64_t sign = x >> (FLOAT64_EXPONENT_BITS + FLOAT64_MANTISSA_BITS);
+    std::uint64_t sign = x >> ( FLOAT64_EXPONENT_BITS + FLOAT64_MANTISSA_BITS );
 
-    auto mstring = bs.substr( 1 + FLOAT64_EXPONENT_BITS, FLOAT64_MANTISSA_BITS );
+    auto mstring =
+        bs.substr( 1 + FLOAT64_EXPONENT_BITS, FLOAT64_MANTISSA_BITS );
     auto estring = bs.substr( 1, FLOAT64_EXPONENT_BITS );
 
-    if (exponent_with_bias == FLOAT64_EXPONENT_MASK) {
+    if ( exponent_with_bias == FLOAT64_EXPONENT_MASK )
+    {
         std::cout << std::format(
             "value:    {}\n"
             "hex:      {:016X}\n"
@@ -143,20 +162,21 @@ void print_float64_representation( double f )
             "sign:     {}\n"
             "exponent:  {}\n"
             "mantissa:          {}\n",
-            f, x, b.to_string(), sign, estring, mstring);
-    } else {
+            f, x, b.to_string(), sign, estring, mstring );
+    }
+    else
+    {
         std::cout << std::format(
             "value:    {}\n"
             "hex:      {:016X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
-            "exponent:  {}                                                     ({}{}{}{})\n"
+            "exponent:  {}                                                     "
+            "({}{}{}{})\n"
             "mantissa:             {}\n",
-            f, x, b.to_string(), sign,
-            estring,
+            f, x, b.to_string(), sign, estring,
             exponent_with_bias ? FLOAT64_EXPONENT_BIAS : 0,
-            exponent_with_bias ? " " : "",
-            exponent >= 0 ? "+" : "", exponent,
+            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent,
             mstring );
     }
 
@@ -176,7 +196,8 @@ void print_float64_representation( double f )
     {
         // Denormal: exponent is -126, no implicit leading 1
         std::cout << std::format( "number:            {}0.{} x 2^({})\n\n",
-                                  ( sign ? "-" : " " ), mstring, -(FLOAT64_EXPONENT_BIAS-1) );
+                                  ( sign ? "-" : " " ), mstring,
+                                  -( FLOAT64_EXPONENT_BIAS - 1 ) );
     }
     else
     {
@@ -188,14 +209,14 @@ void print_float64_representation( double f )
 
 void printHelpAndExit()
 {
-    std::cout <<
-        "floatexplorer [--float] [--double] [--special] number [number]*\n\n"
-        "Examples:\n"
-        "floatexplorer 1 -2 6 1.5 0.125 -inf # --float is the default\n"
-        "floatexplorer --double 1 -2 6 1.5 0.125 -inf\n"
-        "floatexplorer --float --double 1 # both representations\n";
+    std::cout
+        << "floatexplorer [--float] [--double] [--special] number [number]*\n\n"
+           "Examples:\n"
+           "floatexplorer 1 -2 6 1.5 0.125 -inf # --float is the default\n"
+           "floatexplorer --double 1 -2 6 1.5 0.125 -inf\n"
+           "floatexplorer --float --double 1 # both representations\n";
 
-    std::exit(0);
+    std::exit( 0 );
 }
 
 int main( int argc, char** argv )
@@ -268,8 +289,7 @@ int main( int argc, char** argv )
             print_float32_representation( f );
 
             std::cout << "\nLargest denormal:\n";
-            denormal_bits =
-                ( std::uint32_t( 1 ) << FLOAT32_MANTISSA_BITS ) - 1;
+            denormal_bits = ( std::uint32_t( 1 ) << FLOAT32_MANTISSA_BITS ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( float ) );
             print_float32_representation( f );
         }
@@ -281,8 +301,8 @@ int main( int argc, char** argv )
                 std::numeric_limits<double>::infinity(),
                 -std::numeric_limits<double>::infinity(),
                 std::numeric_limits<double>::quiet_NaN(),
-                2.2250738585072014e-308, // Smallest normal double
-                1.7976931348623157e308    // Largest normal double
+                2.2250738585072014e-308,    // Smallest normal double
+                1.7976931348623157e308      // Largest normal double
             };
 
             for ( auto test : tests )
@@ -299,8 +319,7 @@ int main( int argc, char** argv )
             print_float64_representation( f );
 
             std::cout << "\nLargest denormal:\n";
-            denormal_bits =
-                ( std::uint64_t( 1 ) << FLOAT64_MANTISSA_BITS ) - 1;
+            denormal_bits = ( std::uint64_t( 1 ) << FLOAT64_MANTISSA_BITS ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( double ) );
             print_float64_representation( f );
         }
@@ -316,14 +335,48 @@ int main( int argc, char** argv )
         {
             if ( dofloat )
             {
-                float f = std::stof( argv[i] );
+                float f;
+                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                {
+                    uint32_t u32;
+                    unsigned long t;
+                    static_assert( sizeof( t ) >= sizeof( u32 ) );
+                    t = std::stoul( argv[i], nullptr, 16 );
+                    if ( t < UINT_MAX )
+                    {
+                        u32 = t;
+                        memcpy( &f, &u32, sizeof( u32 ) );
+                    }
+                    else
+                    {
+                        std::cerr
+                            << std::format( "Hex Input {} exceeds UINT_MAX, incompatible with --float.\n", t );
+
+                        throw std::runtime_error( "Bad input." );
+                    }
+                }
+                else
+                {
+                    f = std::stof( argv[i] );
+                }
 
                 print_float32_representation( f );
             }
 
             if ( dodouble )
             {
-                double f = std::stod( argv[i] );
+                double f;
+                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                {
+                    uint64_t u64;
+                    static_assert( sizeof( long long ) == sizeof( u64 ) );
+                    u64 = std::stoull( argv[i], nullptr, 16 );
+                    memcpy( &f, &u64, sizeof( u64 ) );
+                }
+                else
+                {
+                    f = std::stod( argv[i] );
+                }
 
                 print_float64_representation( f );
             }
