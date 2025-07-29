@@ -342,7 +342,7 @@ int main( int argc, char** argv )
                     unsigned long t;
                     static_assert( sizeof( t ) >= sizeof( u32 ) );
                     t = std::stoul( argv[i], nullptr, 16 );
-                    if ( t < UINT_MAX )
+                    if ( t <= UINT_MAX )
                     {
                         u32 = t;
                         memcpy( &f, &u32, sizeof( u32 ) );
