@@ -1,5 +1,5 @@
 //
-// This is a little program that unpacks a 32-bit floating point value (letting
+// This is a little program that unpacks a 32-bit or 64-bit IEEE floating point value (letting
 // std::bitset do the bitarray printing)
 //
 #include <getopt.h>
