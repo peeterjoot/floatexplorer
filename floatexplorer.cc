@@ -6,14 +6,16 @@
 #include <strings.h>
 
 #include <bitset>
+#include <cctype>
+#include <climits>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <format>
 #include <iostream>
 #include <limits>
+#include <stdexcept>
 #include <string>
-#include <climits>
 
 #define FLOAT32_MANTISSA_BITS 23
 #define FLOAT32_EXPONENT_BITS 8
@@ -21,10 +23,13 @@
     ( ( std::uint32_t( 1 ) << FLOAT32_EXPONENT_BITS ) - 1 )
 #define FLOAT32_EXPONENT_BIAS \
     ( ( std::uint32_t( 1 ) << ( FLOAT32_EXPONENT_BITS - 1 ) ) - 1 )
-void print_float32_representation( float f )
+
+using float32 = float;
+
+void print_float32_representation( float32 f )
 {
     static_assert( sizeof( f ) == sizeof( std::uint32_t ) );
-    static_assert( std::numeric_limits<float>::is_iec559, "IEEE 754 required" );
+    static_assert( std::numeric_limits<float32>::is_iec559, "IEEE 754 required" );
 
     std::uint32_t x;
     std::memcpy( &x, &f, sizeof( f ) );
@@ -116,10 +121,13 @@ void print_float32_representation( float f )
     ( ( std::uint64_t( 1 ) << FLOAT64_EXPONENT_BITS ) - 1 )
 #define FLOAT64_EXPONENT_BIAS \
     ( ( std::uint64_t( 1 ) << ( FLOAT64_EXPONENT_BITS - 1 ) ) - 1 )
-void print_float64_representation( double f )
+
+using float64 = double;
+
+void print_float64_representation( float64 f )
 {
     static_assert( sizeof( f ) == sizeof( std::uint64_t ) );
-    static_assert( std::numeric_limits<double>::is_iec559,
+    static_assert( std::numeric_limits<float64>::is_iec559,
                    "IEEE 754 required" );
 
     std::uint64_t x;
@@ -207,10 +215,191 @@ void print_float64_representation( double f )
     }
 }
 
+#ifdef __HAVE_FLOAT128
+// Number of bits in the mantissa (excluding the implicit bit)
+#define FLOAT128_MANTISSA_BITS_HIGH (112 - 64)
+
+// Number of bits in the exponent
+#define FLOAT128_EXPONENT_BITS 15
+
+// Mask to extract the exponent: (2^15 - 1)
+#define FLOAT128_EXPONENT_MASK_HIGH \
+    ( (std::uint64_t(1) << FLOAT128_EXPONENT_BITS) - 1 )
+
+// Exponent bias: (2^(15-1) - 1) = 16383
+#define FLOAT128_EXPONENT_BIAS \
+    ( (std::uint64_t(1) << (FLOAT128_EXPONENT_BITS - 1)) - 1 )
+
+using float128 = long double;
+
+void print_float128_representation( float128 f )
+{
+    static_assert( sizeof( f ) == sizeof( __uint128_t ) );
+    static_assert( std::numeric_limits<float128>::is_iec559,
+                   "IEEE 754 required" );
+
+    __uint128_t x;
+    std::memcpy( &x, &f, sizeof( f ) );
+    uint64_t high = x >> 64;
+    uint64_t mantissa_low = std::uint64_t(x);
+
+    std::bitset<64> b_high = high;
+    std::bitset<64> b_low = mantissa_low;
+    std::string bs_high = b_high.to_string();
+    std::uint64_t mantissa_high =
+        high & ( ( std::uint64_t( 1 ) << FLOAT128_MANTISSA_BITS_HIGH ) - 1 );
+    std::uint64_t exponent_with_bias =
+        ( high >> FLOAT128_MANTISSA_BITS_HIGH ) & FLOAT128_EXPONENT_MASK_HIGH;
+    std::int64_t exponent;
+
+    if ( exponent_with_bias && (exponent_with_bias != FLOAT128_EXPONENT_MASK_HIGH) )
+    {
+        exponent = (std::int64_t)exponent_with_bias -
+                   FLOAT128_EXPONENT_BIAS;    // Normal
+    }
+    else if ( exponent_with_bias == 0 && (mantissa_high != 0 && mantissa_low != 0) )
+    {
+        exponent = -( FLOAT128_EXPONENT_BIAS - 1 );    // Denormal
+    }
+    else
+    {
+        exponent = 0;    // Zero
+    }
+
+    std::uint64_t sign = high >> ( FLOAT128_EXPONENT_BITS + FLOAT128_MANTISSA_BITS_HIGH );
+
+    auto mstring =
+        bs_high.substr( 1 + FLOAT128_EXPONENT_BITS, FLOAT128_MANTISSA_BITS_HIGH ) + b_low.to_string();
+    auto estring = bs_high.substr( 1, FLOAT128_EXPONENT_BITS );
+
+    if ( exponent_with_bias == FLOAT128_EXPONENT_MASK_HIGH )
+    {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {:016X}{:016X}\n"
+            "bits:     {}{}\n"
+            "sign:     {}\n"
+            "exponent:  {}\n"
+            "mantissa:                 {}\n",
+            f, high, mantissa_low, b_high.to_string(), b_low.to_string(), sign, estring, mstring );
+    }
+    else
+    {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {:016X}{:016X}\n"
+            "bits:     {}{}\n"
+            "sign:     {}\n"
+            "exponent:  {}                                                     "
+            "({}{}{}{})\n"
+            "mantissa:                 {}\n",
+            f, high, mantissa_low, b_high.to_string(), b_low.to_string(), sign, estring,
+            exponent_with_bias ? FLOAT128_EXPONENT_BIAS : 0,
+            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent,
+            mstring );
+    }
+
+    if ( exponent_with_bias == FLOAT128_EXPONENT_MASK_HIGH )
+    {
+        if ( mantissa_high == 0 && mantissa_low == 0 )
+        {
+            std::cout << std::format( "number:       {}\n\n",
+                                      sign ? "-inf" : "+inf" );
+        }
+        else
+        {
+            std::cout << "number:       NaN\n\n";
+        }
+    }
+    else if ( !exponent_with_bias && (mantissa_high && mantissa_low) )
+    {
+        // Denormal: exponent is −16494, no implicit leading 1
+        std::cout << std::format( "number:                {}0.{} x 2^({})\n\n",
+                                  ( sign ? "-" : " " ), mstring,
+                                  -( FLOAT128_EXPONENT_BIAS - 1 ) );
+    }
+    else
+    {
+        std::cout << std::format( "number:                {}{}.{} x 2^({})\n\n",
+                                  ( sign ? "-" : " " ), x ? 1 : 0, mstring,
+                                  exponent );
+    }
+}
+
+// a rough equivalent of std::stoull(str, e, 16)
+__uint128_t stou128x(const char* str, char** endptr = nullptr) {
+    // Validate input
+    if (!str || *str == '\0') {
+        throw std::invalid_argument("Empty or null string");
+    }
+
+    // Skip leading whitespace
+    const char* start = str;
+    while (std::isspace(*str)) {
+        ++str;
+    }
+
+    // Handle optional 0x or 0X prefix
+    if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) {
+        str += 2;
+    }
+
+    // Count valid hex digits
+    const char* digit_start = str;
+    size_t digit_count = 0;
+    while (*str && std::isxdigit(*str)) {
+        ++digit_count;
+        ++str;
+    }
+
+    // If no valid digits, throw invalid_argument
+    if (digit_count == 0) {
+        throw std::invalid_argument("No valid hexadecimal digits");
+    }
+
+    // Check if input exceeds 128 bits (32 hex digits)
+    if (digit_count > 32) {
+        throw std::out_of_range("Value exceeds __uint128_t range");
+    }
+
+    // Set endptr if provided
+    if (endptr) {
+        *endptr = const_cast<char*>(str);
+    }
+
+    // Split the string into high and low parts (up to 16 digits each)
+    std::string high_str, low_str;
+    size_t high_digits = (digit_count > 16) ? digit_count - 16 : 0;
+    high_str = std::string(digit_start, high_digits);
+    low_str = std::string(digit_start + high_digits, digit_count - high_digits);
+
+    // Parse high and low parts using std::stoull
+    uint64_t high = 0, low = 0;
+    try {
+        if (!high_str.empty()) {
+            high = std::stoull(high_str, nullptr, 16);
+        }
+        if (!low_str.empty()) {
+            low = std::stoull(low_str, nullptr, 16);
+        }
+    } catch (const std::invalid_argument&) {
+        throw std::invalid_argument("Invalid hexadecimal string");
+    } catch (const std::out_of_range&) {
+        throw std::out_of_range("Value exceeds uint64_t range in high or low part");
+    }
+
+    // Combine into __uint128_t
+    return (static_cast<__uint128_t>(high) << 64) | static_cast<__uint128_t>(low);
+}
+#define HELP_LONG_DOUBLE128 "[--longdouble] "
+#else
+#define HELP_LONG_DOUBLE128 ""
+#endif
+
 void printHelpAndExit()
 {
     std::cout
-        << "floatexplorer [--float] [--double] [--special] number [number]*\n\n"
+        << "floatexplorer [--float] [--double] " HELP_LONG_DOUBLE128 "[--special] number [number]*\n\n"
            "Examples:\n"
            "floatexplorer 1 -2 6 1.5 0.125 -inf # --float is the default\n"
            "floatexplorer --double 1 -2 6 1.5 0.125 -inf\n"
@@ -222,12 +411,16 @@ void printHelpAndExit()
 int main( int argc, char** argv )
 {
     int c;
-    bool dofloat{};
-    bool dodouble{};
+    bool dofloat32{};
+    bool dofloat64{};
+    bool dofloat128{};
     bool specialcases{};
     const struct option long_options[] = { { "help", 0, NULL, 'h' },
                                            { "float", 0, NULL, 'f' },
                                            { "double", 0, NULL, 'd' },
+#ifdef __HAVE_FLOAT128
+                                           { "longdouble", 0, NULL, 'l' },
+#endif
                                            { "special", 0, NULL, 's' },
                                            { NULL, 0, NULL, 0 } };
 
@@ -238,12 +431,17 @@ int main( int argc, char** argv )
         {
             case 'f':
             {
-                dofloat = true;
+                dofloat32 = true;
                 break;
             }
             case 'd':
             {
-                dodouble = true;
+                dofloat64 = true;
+                break;
+            }
+            case 'l':
+            {
+                dofloat128 = true;
                 break;
             }
             case 's':
@@ -259,19 +457,19 @@ int main( int argc, char** argv )
         }
     }
 
-    if ( !dofloat && !dodouble )
+    if ( !dofloat32 && !dofloat64 && !dofloat128 )
     {
-        dofloat = true;
+        dofloat32 = true;
     }
 
     if ( specialcases )
     {
-        if ( dofloat )
+        if ( dofloat32 )
         {
-            float tests[] = { 0.0f,
-                              std::numeric_limits<float>::infinity(),
-                              -std::numeric_limits<float>::infinity(),
-                              std::numeric_limits<float>::quiet_NaN(),
+            float32 tests[] = { 0.0f,
+                              std::numeric_limits<float32>::infinity(),
+                              -std::numeric_limits<float32>::infinity(),
+                              std::numeric_limits<float32>::quiet_NaN(),
                               1.17549435e-38f,    // Smallest normal
                               3.4028235e38f };    // Largest normal
 
@@ -281,26 +479,26 @@ int main( int argc, char** argv )
                 print_float32_representation( test );
             }
 
-            float f;
+            float32 f;
             // Test denormals
             std::cout << "\nSmallest denormal:\n";
             std::uint32_t denormal_bits = 0x00000001;
-            std::memcpy( &f, &denormal_bits, sizeof( float ) );
+            std::memcpy( &f, &denormal_bits, sizeof( float32 ) );
             print_float32_representation( f );
 
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( std::uint32_t( 1 ) << FLOAT32_MANTISSA_BITS ) - 1;
-            std::memcpy( &f, &denormal_bits, sizeof( float ) );
+            std::memcpy( &f, &denormal_bits, sizeof( float32 ) );
             print_float32_representation( f );
         }
 
-        if ( dodouble )
+        if ( dofloat64 )
         {
-            double tests[] = {
+            float64 tests[] = {
                 0.0d,
-                std::numeric_limits<double>::infinity(),
-                -std::numeric_limits<double>::infinity(),
-                std::numeric_limits<double>::quiet_NaN(),
+                std::numeric_limits<float64>::infinity(),
+                -std::numeric_limits<float64>::infinity(),
+                std::numeric_limits<float64>::quiet_NaN(),
                 2.2250738585072014e-308,    // Smallest normal double
                 1.7976931348623157e308      // Largest normal double
             };
@@ -311,18 +509,51 @@ int main( int argc, char** argv )
                 print_float64_representation( test );
             }
 
-            double f;
+            float64 f;
             // Test denormals
             std::cout << "\nSmallest denormal:\n";
             std::uint64_t denormal_bits = 0x00000001;
-            std::memcpy( &f, &denormal_bits, sizeof( double ) );
+            std::memcpy( &f, &denormal_bits, sizeof( float64 ) );
             print_float64_representation( f );
 
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( std::uint64_t( 1 ) << FLOAT64_MANTISSA_BITS ) - 1;
-            std::memcpy( &f, &denormal_bits, sizeof( double ) );
+            std::memcpy( &f, &denormal_bits, sizeof( float64 ) );
             print_float64_representation( f );
         }
+
+#ifdef __HAVE_FLOAT128
+        if ( dofloat128 )
+        {
+            float128 tests[] = {
+                float128(0.0),
+                std::numeric_limits<float128>::infinity(),
+                -std::numeric_limits<float128>::infinity(),
+                std::numeric_limits<float128>::quiet_NaN(),
+                0x0.0000000000000000000000000001p-16382L, // Smallest normal float128
+                0x1.ffffffffffffffffffffffffffffp+16383L  // Largest normal float128
+            };
+
+            for ( auto test : tests )
+            {
+                std::cout << "\nTest value: " << test << "\n";
+                print_float128_representation( test );
+            }
+
+            float128 f;
+            // Test denormals
+            std::cout << "\nSmallest denormal:\n";
+            __uint128_t denormal_bits = 0x00000001;
+            std::memcpy( &f, &denormal_bits, sizeof( float128 ) );
+            print_float128_representation( f );
+
+            std::cout << "\nLargest denormal:\n";
+            denormal_bits = ( std::uint64_t( 1 ) << FLOAT128_MANTISSA_BITS_HIGH ) - 1;
+            denormal_bits = (denormal_bits << 64) | std::uint64_t(-1);
+            std::memcpy( &f, &denormal_bits, sizeof( float128 ) );
+            print_float128_representation( f );
+        }
+#endif
     }
     else if ( argc == optind )
     {
@@ -333,9 +564,9 @@ int main( int argc, char** argv )
     {
         try
         {
-            if ( dofloat )
+            if ( dofloat32 )
             {
-                float f;
+                float32 f;
                 if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                 {
                     uint32_t u32;
@@ -363,9 +594,9 @@ int main( int argc, char** argv )
                 print_float32_representation( f );
             }
 
-            if ( dodouble )
+            if ( dofloat64 )
             {
-                double f;
+                float64 f;
                 if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                 {
                     uint64_t u64;
@@ -380,6 +611,26 @@ int main( int argc, char** argv )
 
                 print_float64_representation( f );
             }
+
+#ifdef __HAVE_FLOAT128
+            if ( dofloat128 )
+            {
+                float128 f;
+                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                {
+                    __uint128_t u128;
+                    u128 = stou128x( argv[i] );
+                    memcpy( &f, &u128, sizeof( u128 ) );
+                }
+                else
+                {
+                    f = std::stod( argv[i] );
+                }
+
+                print_float128_representation( f );
+            }
+
+#endif
         }
         catch ( std::exception& e )
         {

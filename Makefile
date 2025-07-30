@@ -1,5 +1,6 @@
 CXXFLAGS += -g
 CXXFLAGS += -std=c++20
+CXXFLAGS += -fext-numeric-literals
 
 all : floatexplorer
 
