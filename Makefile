@@ -8,12 +8,14 @@ ifeq ($(OS),Darwin)
 CXX := g++-15
 LDFLAGS += -lquadmath
 CXXFLAGS += -fext-numeric-literals
+CXXFLAGS += -gdwarf-4
 endif
 
 all : floatexplorer
 
 clean:
 	rm -f floatexplorer
+	rm -rf *.dSYM
 
 test:
 	./floatexplorer --spe | diff -up - expected/float.special.txt

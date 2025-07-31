@@ -548,13 +548,16 @@ int main( int argc, char** argv )
         {
             float128 tests[] = {
                 float128(0.0),
+#ifdef __HAVE_FLOAT128
                 std::numeric_limits<float128>::infinity(),
                 -std::numeric_limits<float128>::infinity(),
                 std::numeric_limits<float128>::quiet_NaN(),
-#ifdef __HAVE_FLOAT128
                 0x1.0p-16382L, // Smallest normal float128
                 0x1.ffffffffffffffffffffffffffffp+16383L // Largest normal float128
 #else
+                HUGE_VALQ,
+                -HUGE_VALQ,
+                nanq(""),
                 0x1.0p-16382Q, // Smallest normal float128
                 0x1.ffffffffffffffffffffffffffffp+16383Q // Largest normal float128
 #endif
