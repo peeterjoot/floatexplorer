@@ -219,16 +219,17 @@ void print_float64_representation( float64 f )
     using float128 = long double;
     #define FLOAT128_SPECIFIER "%La"
     #define FLOAT128_HELP "[--longdouble] "
-#elif defined(__FLOAT128__)
+#elif defined __GNUC__
     #include <quadmath.h>
     using float128 = __float128;
     #define FLOAT128_SPECIFIER "%Qf"
     #define FLOAT128_HELP "[--longdouble] "
 #else
     #define FLOAT128_HELP ""
+    #define NO_FLOAT128
 #endif
 
-#ifdef __HAVE_FLOAT128
+#ifndef NO_FLOAT128
 // Number of bits in the mantissa (excluding the implicit bit)
 #define FLOAT128_MANTISSA_BITS_HIGH (112 - 64)
 
@@ -243,11 +244,23 @@ void print_float64_representation( float64 f )
 #define FLOAT128_EXPONENT_BIAS \
     ( (std::uint64_t(1) << (FLOAT128_EXPONENT_BITS - 1)) - 1 )
 
+std::string float128_tostring( float128 f ) {
+    char buffer[128];
+#ifdef __HAVE_FLOAT128
+    snprintf(buffer, sizeof(buffer), FLOAT128_SPECIFIER, f);
+#else
+    quadmath_snprintf(buffer, sizeof(buffer), FLOAT128_SPECIFIER, f);
+#endif
+    return buffer;
+}
+
 void print_float128_representation( float128 f )
 {
     static_assert( sizeof( f ) == sizeof( __uint128_t ) );
+#ifdef __HAVE_FLOAT128
     static_assert( std::numeric_limits<float128>::is_iec559,
                    "IEEE 754 required" );
+#endif
 
     __uint128_t x;
     std::memcpy( &x, &f, sizeof( f ) );
@@ -292,7 +305,7 @@ void print_float128_representation( float128 f )
             "sign:     {}\n"
             "exponent:  {}\n"
             "mantissa:                 {}\n",
-            f, high, mantissa_low, b_high.to_string(), b_low.to_string(), sign, estring, mstring );
+            float128_tostring(f), high, mantissa_low, b_high.to_string(), b_low.to_string(), sign, estring, mstring );
     }
     else
     {
@@ -304,7 +317,7 @@ void print_float128_representation( float128 f )
             "exponent:  {}                                                     "
             "({}{}{}{})\n"
             "mantissa:                 {}\n",
-            f, high, mantissa_low, b_high.to_string(), b_low.to_string(), sign, estring,
+            float128_tostring(f), high, mantissa_low, b_high.to_string(), b_low.to_string(), sign, estring,
             exponent_with_bias ? FLOAT128_EXPONENT_BIAS : 0,
             exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent,
             mstring );
@@ -426,7 +439,7 @@ int main( int argc, char** argv )
     const struct option long_options[] = { { "help", 0, NULL, 'h' },
                                            { "float", 0, NULL, 'f' },
                                            { "double", 0, NULL, 'd' },
-#ifdef __HAVE_FLOAT128
+#ifndef NO_FLOAT128
                                            { "longdouble", 0, NULL, 'l' },
 #endif
                                            { "special", 0, NULL, 's' },
@@ -503,7 +516,7 @@ int main( int argc, char** argv )
         if ( dofloat64 )
         {
             float64 tests[] = {
-                0.0d,
+                0.0,
                 std::numeric_limits<float64>::infinity(),
                 -std::numeric_limits<float64>::infinity(),
                 std::numeric_limits<float64>::quiet_NaN(),
@@ -530,7 +543,7 @@ int main( int argc, char** argv )
             print_float64_representation( f );
         }
 
-#ifdef __HAVE_FLOAT128
+#ifndef NO_FLOAT128
         if ( dofloat128 )
         {
             float128 tests[] = {
@@ -549,13 +562,7 @@ int main( int argc, char** argv )
 
             for ( auto test : tests )
             {
-                char buffer[128];
-#ifdef __FLOAT128__
-                quadmath_snprintf(buffer, sizeof(buffer), FLOAT128_SPECIFIER, test);
-#else
-                snprintf(buffer, sizeof(buffer), FLOAT128_SPECIFIER, test);
-#endif
-                std::cout << std::format( "\nTest value: {}\n", buffer );
+                std::cout << std::format( "\nTest value: {}\n", float128_tostring( test ) );
 
                 print_float128_representation( test );
             }
@@ -632,7 +639,7 @@ int main( int argc, char** argv )
                 print_float64_representation( f );
             }
 
-#ifdef __HAVE_FLOAT128
+#ifndef NO_FLOAT128
             if ( dofloat128 )
             {
                 float128 f;

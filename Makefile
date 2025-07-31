@@ -1,6 +1,14 @@
 CXXFLAGS += -g
 CXXFLAGS += -std=c++20
+
+OS := $(shell uname -s)
+
+# requires: brew install gcc
+ifeq ($(OS),Darwin)
+CXX := g++-15
+LDFLAGS += -lquadmath
 CXXFLAGS += -fext-numeric-literals
+endif
 
 all : floatexplorer
 
