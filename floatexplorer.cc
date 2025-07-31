@@ -216,6 +216,19 @@ void print_float64_representation( float64 f )
 }
 
 #ifdef __HAVE_FLOAT128
+    using float128 = long double;
+    #define FLOAT128_SPECIFIER "%La"
+    #define FLOAT128_HELP "[--longdouble] "
+#elif defined(__FLOAT128__)
+    #include <quadmath.h>
+    using float128 = __float128;
+    #define FLOAT128_SPECIFIER "%Qf"
+    #define FLOAT128_HELP "[--longdouble] "
+#else
+    #define FLOAT128_HELP ""
+#endif
+
+#ifdef __HAVE_FLOAT128
 // Number of bits in the mantissa (excluding the implicit bit)
 #define FLOAT128_MANTISSA_BITS_HIGH (112 - 64)
 
@@ -229,8 +242,6 @@ void print_float64_representation( float64 f )
 // Exponent bias: (2^(15-1) - 1) = 16383
 #define FLOAT128_EXPONENT_BIAS \
     ( (std::uint64_t(1) << (FLOAT128_EXPONENT_BITS - 1)) - 1 )
-
-using float128 = long double;
 
 void print_float128_representation( float128 f )
 {
@@ -257,7 +268,7 @@ void print_float128_representation( float128 f )
         exponent = (std::int64_t)exponent_with_bias -
                    FLOAT128_EXPONENT_BIAS;    // Normal
     }
-    else if ( exponent_with_bias == 0 && (mantissa_high != 0 && mantissa_low != 0) )
+    else if ( exponent_with_bias == 0 && (mantissa_high || mantissa_low) )
     {
         exponent = -( FLOAT128_EXPONENT_BIAS - 1 );    // Denormal
     }
@@ -391,15 +402,12 @@ __uint128_t stou128x(const char* str, char** endptr = nullptr) {
     // Combine into __uint128_t
     return (static_cast<__uint128_t>(high) << 64) | static_cast<__uint128_t>(low);
 }
-#define HELP_LONG_DOUBLE128 "[--longdouble] "
-#else
-#define HELP_LONG_DOUBLE128 ""
 #endif
 
 void printHelpAndExit()
 {
     std::cout
-        << "floatexplorer [--float] [--double] " HELP_LONG_DOUBLE128 "[--special] number [number]*\n\n"
+        << "floatexplorer [--float] [--double] " FLOAT128_HELP "[--special] number [number]*\n\n"
            "Examples:\n"
            "floatexplorer 1 -2 6 1.5 0.125 -inf # --float is the default\n"
            "floatexplorer --double 1 -2 6 1.5 0.125 -inf\n"
@@ -530,13 +538,25 @@ int main( int argc, char** argv )
                 std::numeric_limits<float128>::infinity(),
                 -std::numeric_limits<float128>::infinity(),
                 std::numeric_limits<float128>::quiet_NaN(),
-                0x0.0000000000000000000000000001p-16382L, // Smallest normal float128
-                0x1.ffffffffffffffffffffffffffffp+16383L  // Largest normal float128
+#ifdef __HAVE_FLOAT128
+                0x1.0p-16382L, // Smallest normal float128
+                0x1.ffffffffffffffffffffffffffffp+16383L // Largest normal float128
+#else
+                0x1.0p-16382Q, // Smallest normal float128
+                0x1.ffffffffffffffffffffffffffffp+16383Q // Largest normal float128
+#endif
             };
 
             for ( auto test : tests )
             {
-                std::cout << "\nTest value: " << test << "\n";
+                char buffer[128];
+#ifdef __FLOAT128__
+                quadmath_snprintf(buffer, sizeof(buffer), FLOAT128_SPECIFIER, test);
+#else
+                snprintf(buffer, sizeof(buffer), FLOAT128_SPECIFIER, test);
+#endif
+                std::cout << std::format( "\nTest value: {}\n", buffer );
+
                 print_float128_representation( test );
             }
 
@@ -624,7 +644,7 @@ int main( int argc, char** argv )
                 }
                 else
                 {
-                    f = std::stod( argv[i] );
+                    f = std::stold( argv[i] );
                 }
 
                 print_float128_representation( f );
