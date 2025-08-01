@@ -19,10 +19,8 @@
 
 #define FLOAT32_MANTISSA_BITS 23
 #define FLOAT32_EXPONENT_BITS 8
-#define FLOAT32_EXPONENT_MASK \
-    ( ( std::uint32_t( 1 ) << FLOAT32_EXPONENT_BITS ) - 1 )
-#define FLOAT32_EXPONENT_BIAS \
-    ( ( std::uint32_t( 1 ) << ( FLOAT32_EXPONENT_BITS - 1 ) ) - 1 )
+#define FLOAT32_EXPONENT_MASK ( ( std::uint32_t( 1 ) << FLOAT32_EXPONENT_BITS ) - 1 )
+#define FLOAT32_EXPONENT_BIAS ( ( std::uint32_t( 1 ) << ( FLOAT32_EXPONENT_BITS - 1 ) ) - 1 )
 
 using float32 = float;
 
@@ -36,16 +34,13 @@ void print_float32_representation( float32 f )
 
     std::bitset<32> b = x;
     std::string bs = b.to_string();
-    std::uint32_t mantissa =
-        x & ( ( std::uint32_t( 1 ) << FLOAT32_MANTISSA_BITS ) - 1 );
-    std::uint32_t exponent_with_bias =
-        ( x >> FLOAT32_MANTISSA_BITS ) & FLOAT32_EXPONENT_MASK;
+    std::uint32_t mantissa = x & ( ( std::uint32_t( 1 ) << FLOAT32_MANTISSA_BITS ) - 1 );
+    std::uint32_t exponent_with_bias = ( x >> FLOAT32_MANTISSA_BITS ) & FLOAT32_EXPONENT_MASK;
     std::int32_t exponent;
 
     if ( exponent_with_bias && exponent_with_bias != FLOAT32_EXPONENT_MASK )
     {
-        exponent = (std::int32_t)exponent_with_bias -
-                   FLOAT32_EXPONENT_BIAS;    // Normal
+        exponent = (std::int32_t)exponent_with_bias - FLOAT32_EXPONENT_BIAS;    // Normal
     }
     else if ( exponent_with_bias == 0 && mantissa != 0 )
     {
@@ -58,8 +53,7 @@ void print_float32_representation( float32 f )
 
     std::uint32_t sign = x >> ( FLOAT32_EXPONENT_BITS + FLOAT32_MANTISSA_BITS );
 
-    auto mstring =
-        bs.substr( 1 + FLOAT32_EXPONENT_BITS, FLOAT32_MANTISSA_BITS );
+    auto mstring = bs.substr( 1 + FLOAT32_EXPONENT_BITS, FLOAT32_MANTISSA_BITS );
     auto estring = bs.substr( 1, FLOAT32_EXPONENT_BITS );
 
     if ( exponent_with_bias == FLOAT32_EXPONENT_MASK )
@@ -82,18 +76,15 @@ void print_float32_representation( float32 f )
             "sign:     {}\n"
             "exponent:  {}                        ({}{}{}{})\n"
             "mantissa:          {}\n",
-            f, x, b.to_string(), sign, estring,
-            exponent_with_bias ? FLOAT32_EXPONENT_BIAS : 0,
-            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent,
-            mstring );
+            f, x, b.to_string(), sign, estring, exponent_with_bias ? FLOAT32_EXPONENT_BIAS : 0,
+            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
     }
 
     if ( exponent_with_bias == FLOAT32_EXPONENT_MASK )
     {
         if ( mantissa == 0 )
         {
-            std::cout << std::format( "number:   {}\n\n",
-                                      sign ? "-inf" : "+inf" );
+            std::cout << std::format( "number:   {}\n\n", sign ? "-inf" : "+inf" );
         }
         else
         {
@@ -103,48 +94,40 @@ void print_float32_representation( float32 f )
     else if ( !exponent_with_bias && mantissa )
     {
         // Denormal: exponent is -126, no implicit leading 1
-        std::cout << std::format( "number:         {}0.{} x 2^({})\n\n",
-                                  ( sign ? "-" : " " ), mstring,
+        std::cout << std::format( "number:         {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
                                   -( FLOAT32_EXPONENT_BIAS - 1 ) );
     }
     else
     {
-        std::cout << std::format( "number:         {}{}.{} x 2^({})\n\n",
-                                  ( sign ? "-" : " " ), x ? 1 : 0, mstring,
+        std::cout << std::format( "number:         {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), x ? 1 : 0, mstring,
                                   exponent );
     }
 }
 
 #define FLOAT64_MANTISSA_BITS 52
 #define FLOAT64_EXPONENT_BITS 11
-#define FLOAT64_EXPONENT_MASK \
-    ( ( std::uint64_t( 1 ) << FLOAT64_EXPONENT_BITS ) - 1 )
-#define FLOAT64_EXPONENT_BIAS \
-    ( ( std::uint64_t( 1 ) << ( FLOAT64_EXPONENT_BITS - 1 ) ) - 1 )
+#define FLOAT64_EXPONENT_MASK ( ( std::uint64_t( 1 ) << FLOAT64_EXPONENT_BITS ) - 1 )
+#define FLOAT64_EXPONENT_BIAS ( ( std::uint64_t( 1 ) << ( FLOAT64_EXPONENT_BITS - 1 ) ) - 1 )
 
 using float64 = double;
 
 void print_float64_representation( float64 f )
 {
     static_assert( sizeof( f ) == sizeof( std::uint64_t ) );
-    static_assert( std::numeric_limits<float64>::is_iec559,
-                   "IEEE 754 required" );
+    static_assert( std::numeric_limits<float64>::is_iec559, "IEEE 754 required" );
 
     std::uint64_t x;
     std::memcpy( &x, &f, sizeof( f ) );
 
     std::bitset<64> b = x;
     std::string bs = b.to_string();
-    std::uint64_t mantissa =
-        x & ( ( std::uint64_t( 1 ) << FLOAT64_MANTISSA_BITS ) - 1 );
-    std::uint64_t exponent_with_bias =
-        ( x >> FLOAT64_MANTISSA_BITS ) & FLOAT64_EXPONENT_MASK;
+    std::uint64_t mantissa = x & ( ( std::uint64_t( 1 ) << FLOAT64_MANTISSA_BITS ) - 1 );
+    std::uint64_t exponent_with_bias = ( x >> FLOAT64_MANTISSA_BITS ) & FLOAT64_EXPONENT_MASK;
     std::int64_t exponent;
 
     if ( exponent_with_bias && exponent_with_bias != FLOAT64_EXPONENT_MASK )
     {
-        exponent = (std::int64_t)exponent_with_bias -
-                   FLOAT64_EXPONENT_BIAS;    // Normal
+        exponent = (std::int64_t)exponent_with_bias - FLOAT64_EXPONENT_BIAS;    // Normal
     }
     else if ( exponent_with_bias == 0 && mantissa != 0 )
     {
@@ -157,8 +140,7 @@ void print_float64_representation( float64 f )
 
     std::uint64_t sign = x >> ( FLOAT64_EXPONENT_BITS + FLOAT64_MANTISSA_BITS );
 
-    auto mstring =
-        bs.substr( 1 + FLOAT64_EXPONENT_BITS, FLOAT64_MANTISSA_BITS );
+    auto mstring = bs.substr( 1 + FLOAT64_EXPONENT_BITS, FLOAT64_MANTISSA_BITS );
     auto estring = bs.substr( 1, FLOAT64_EXPONENT_BITS );
 
     if ( exponent_with_bias == FLOAT64_EXPONENT_MASK )
@@ -182,18 +164,15 @@ void print_float64_representation( float64 f )
             "exponent:  {}                                                     "
             "({}{}{}{})\n"
             "mantissa:             {}\n",
-            f, x, b.to_string(), sign, estring,
-            exponent_with_bias ? FLOAT64_EXPONENT_BIAS : 0,
-            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent,
-            mstring );
+            f, x, b.to_string(), sign, estring, exponent_with_bias ? FLOAT64_EXPONENT_BIAS : 0,
+            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
     }
 
     if ( exponent_with_bias == FLOAT64_EXPONENT_MASK )
     {
         if ( mantissa == 0 )
         {
-            std::cout << std::format( "number:   {}\n\n",
-                                      sign ? "-inf" : "+inf" );
+            std::cout << std::format( "number:   {}\n\n", sign ? "-inf" : "+inf" );
         }
         else
         {
@@ -203,53 +182,50 @@ void print_float64_representation( float64 f )
     else if ( !exponent_with_bias && mantissa )
     {
         // Denormal: exponent is -126, no implicit leading 1
-        std::cout << std::format( "number:            {}0.{} x 2^({})\n\n",
-                                  ( sign ? "-" : " " ), mstring,
+        std::cout << std::format( "number:            {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
                                   -( FLOAT64_EXPONENT_BIAS - 1 ) );
     }
     else
     {
-        std::cout << std::format( "number:            {}{}.{} x 2^({})\n\n",
-                                  ( sign ? "-" : " " ), x ? 1 : 0, mstring,
+        std::cout << std::format( "number:            {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), x ? 1 : 0, mstring,
                                   exponent );
     }
 }
 
 #ifdef __HAVE_FLOAT128
-    using float128 = long double;
-    #define FLOAT128_SPECIFIER "%La"
-    #define FLOAT128_HELP "[--longdouble] "
+using float128 = long double;
+#define FLOAT128_SPECIFIER "%La"
+#define FLOAT128_HELP "[--longdouble] "
 #elif defined __GNUC__
-    #include <quadmath.h>
-    using float128 = __float128;
-    #define FLOAT128_SPECIFIER "%Qf"
-    #define FLOAT128_HELP "[--longdouble] "
+#include <quadmath.h>
+using float128 = __float128;
+#define FLOAT128_SPECIFIER "%Qf"
+#define FLOAT128_HELP "[--longdouble] "
 #else
-    #define FLOAT128_HELP ""
-    #define NO_FLOAT128
+#define FLOAT128_HELP ""
+#define NO_FLOAT128
 #endif
 
 #ifndef NO_FLOAT128
 // Number of bits in the mantissa (excluding the implicit bit)
-#define FLOAT128_MANTISSA_BITS_HIGH (112 - 64)
+#define FLOAT128_MANTISSA_BITS_HIGH ( 112 - 64 )
 
 // Number of bits in the exponent
 #define FLOAT128_EXPONENT_BITS 15
 
 // Mask to extract the exponent: (2^15 - 1)
-#define FLOAT128_EXPONENT_MASK_HIGH \
-    ( (std::uint64_t(1) << FLOAT128_EXPONENT_BITS) - 1 )
+#define FLOAT128_EXPONENT_MASK_HIGH ( ( std::uint64_t( 1 ) << FLOAT128_EXPONENT_BITS ) - 1 )
 
 // Exponent bias: (2^(15-1) - 1) = 16383
-#define FLOAT128_EXPONENT_BIAS \
-    ( (std::uint64_t(1) << (FLOAT128_EXPONENT_BITS - 1)) - 1 )
+#define FLOAT128_EXPONENT_BIAS ( ( std::uint64_t( 1 ) << ( FLOAT128_EXPONENT_BITS - 1 ) ) - 1 )
 
-std::string float128_tostring( float128 f ) {
+std::string float128_tostring( float128 f )
+{
     char buffer[128];
 #ifdef __HAVE_FLOAT128
-    snprintf(buffer, sizeof(buffer), FLOAT128_SPECIFIER, f);
+    snprintf( buffer, sizeof( buffer ), FLOAT128_SPECIFIER, f );
 #else
-    quadmath_snprintf(buffer, sizeof(buffer), FLOAT128_SPECIFIER, f);
+    quadmath_snprintf( buffer, sizeof( buffer ), FLOAT128_SPECIFIER, f );
 #endif
     return buffer;
 }
@@ -258,30 +234,26 @@ void print_float128_representation( float128 f )
 {
     static_assert( sizeof( f ) == sizeof( __uint128_t ) );
 #ifdef __HAVE_FLOAT128
-    static_assert( std::numeric_limits<float128>::is_iec559,
-                   "IEEE 754 required" );
+    static_assert( std::numeric_limits<float128>::is_iec559, "IEEE 754 required" );
 #endif
 
     __uint128_t x;
     std::memcpy( &x, &f, sizeof( f ) );
     uint64_t high = x >> 64;
-    uint64_t mantissa_low = std::uint64_t(x);
+    uint64_t mantissa_low = std::uint64_t( x );
 
     std::bitset<64> b_high = high;
     std::bitset<64> b_low = mantissa_low;
     std::string bs_high = b_high.to_string();
-    std::uint64_t mantissa_high =
-        high & ( ( std::uint64_t( 1 ) << FLOAT128_MANTISSA_BITS_HIGH ) - 1 );
-    std::uint64_t exponent_with_bias =
-        ( high >> FLOAT128_MANTISSA_BITS_HIGH ) & FLOAT128_EXPONENT_MASK_HIGH;
+    std::uint64_t mantissa_high = high & ( ( std::uint64_t( 1 ) << FLOAT128_MANTISSA_BITS_HIGH ) - 1 );
+    std::uint64_t exponent_with_bias = ( high >> FLOAT128_MANTISSA_BITS_HIGH ) & FLOAT128_EXPONENT_MASK_HIGH;
     std::int64_t exponent;
 
-    if ( exponent_with_bias && (exponent_with_bias != FLOAT128_EXPONENT_MASK_HIGH) )
+    if ( exponent_with_bias && ( exponent_with_bias != FLOAT128_EXPONENT_MASK_HIGH ) )
     {
-        exponent = (std::int64_t)exponent_with_bias -
-                   FLOAT128_EXPONENT_BIAS;    // Normal
+        exponent = (std::int64_t)exponent_with_bias - FLOAT128_EXPONENT_BIAS;    // Normal
     }
-    else if ( exponent_with_bias == 0 && (mantissa_high || mantissa_low) )
+    else if ( exponent_with_bias == 0 && ( mantissa_high || mantissa_low ) )
     {
         exponent = -( FLOAT128_EXPONENT_BIAS - 1 );    // Denormal
     }
@@ -292,8 +264,7 @@ void print_float128_representation( float128 f )
 
     std::uint64_t sign = high >> ( FLOAT128_EXPONENT_BITS + FLOAT128_MANTISSA_BITS_HIGH );
 
-    auto mstring =
-        bs_high.substr( 1 + FLOAT128_EXPONENT_BITS, FLOAT128_MANTISSA_BITS_HIGH ) + b_low.to_string();
+    auto mstring = bs_high.substr( 1 + FLOAT128_EXPONENT_BITS, FLOAT128_MANTISSA_BITS_HIGH ) + b_low.to_string();
     auto estring = bs_high.substr( 1, FLOAT128_EXPONENT_BITS );
 
     if ( exponent_with_bias == FLOAT128_EXPONENT_MASK_HIGH )
@@ -305,7 +276,7 @@ void print_float128_representation( float128 f )
             "sign:     {}\n"
             "exponent:  {}\n"
             "mantissa:                 {}\n",
-            float128_tostring(f), high, mantissa_low, b_high.to_string(), b_low.to_string(), sign, estring, mstring );
+            float128_tostring( f ), high, mantissa_low, b_high.to_string(), b_low.to_string(), sign, estring, mstring );
     }
     else
     {
@@ -317,114 +288,125 @@ void print_float128_representation( float128 f )
             "exponent:  {}                                                     "
             "({}{}{}{})\n"
             "mantissa:                 {}\n",
-            float128_tostring(f), high, mantissa_low, b_high.to_string(), b_low.to_string(), sign, estring,
-            exponent_with_bias ? FLOAT128_EXPONENT_BIAS : 0,
-            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent,
-            mstring );
+            float128_tostring( f ), high, mantissa_low, b_high.to_string(), b_low.to_string(), sign, estring,
+            exponent_with_bias ? FLOAT128_EXPONENT_BIAS : 0, exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "",
+            exponent, mstring );
     }
 
     if ( exponent_with_bias == FLOAT128_EXPONENT_MASK_HIGH )
     {
         if ( mantissa_high == 0 && mantissa_low == 0 )
         {
-            std::cout << std::format( "number:       {}\n\n",
-                                      sign ? "-inf" : "+inf" );
+            std::cout << std::format( "number:       {}\n\n", sign ? "-inf" : "+inf" );
         }
         else
         {
             std::cout << "number:       NaN\n\n";
         }
     }
-    else if ( !exponent_with_bias && (mantissa_high && mantissa_low) )
+    else if ( !exponent_with_bias && ( mantissa_high && mantissa_low ) )
     {
         // Denormal: exponent is −16494, no implicit leading 1
-        std::cout << std::format( "number:                {}0.{} x 2^({})\n\n",
-                                  ( sign ? "-" : " " ), mstring,
+        std::cout << std::format( "number:                {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
                                   -( FLOAT128_EXPONENT_BIAS - 1 ) );
     }
     else
     {
-        std::cout << std::format( "number:                {}{}.{} x 2^({})\n\n",
-                                  ( sign ? "-" : " " ), x ? 1 : 0, mstring,
-                                  exponent );
+        std::cout << std::format( "number:                {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), x ? 1 : 0,
+                                  mstring, exponent );
     }
 }
 
 // a rough equivalent of std::stoull(str, e, 16)
-__uint128_t stou128x(const char* str, char** endptr = nullptr) {
+__uint128_t stou128x( const char* str, char** endptr = nullptr )
+{
     // Validate input
-    if (!str || *str == '\0') {
-        throw std::invalid_argument("Empty or null string");
+    if ( !str || *str == '\0' )
+    {
+        throw std::invalid_argument( "Empty or null string" );
     }
 
     // Skip leading whitespace
     const char* start = str;
-    while (std::isspace(*str)) {
+    while ( std::isspace( *str ) )
+    {
         ++str;
     }
 
     // Handle optional 0x or 0X prefix
-    if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) {
+    if ( str[0] == '0' && ( str[1] == 'x' || str[1] == 'X' ) )
+    {
         str += 2;
     }
 
     // Count valid hex digits
     const char* digit_start = str;
     size_t digit_count = 0;
-    while (*str && std::isxdigit(*str)) {
+    while ( *str && std::isxdigit( *str ) )
+    {
         ++digit_count;
         ++str;
     }
 
     // If no valid digits, throw invalid_argument
-    if (digit_count == 0) {
-        throw std::invalid_argument("No valid hexadecimal digits");
+    if ( digit_count == 0 )
+    {
+        throw std::invalid_argument( "No valid hexadecimal digits" );
     }
 
     // Check if input exceeds 128 bits (32 hex digits)
-    if (digit_count > 32) {
-        throw std::out_of_range("Value exceeds __uint128_t range");
+    if ( digit_count > 32 )
+    {
+        throw std::out_of_range( "Value exceeds __uint128_t range" );
     }
 
     // Set endptr if provided
-    if (endptr) {
-        *endptr = const_cast<char*>(str);
+    if ( endptr )
+    {
+        *endptr = const_cast<char*>( str );
     }
 
     // Split the string into high and low parts (up to 16 digits each)
     std::string high_str, low_str;
-    size_t high_digits = (digit_count > 16) ? digit_count - 16 : 0;
-    high_str = std::string(digit_start, high_digits);
-    low_str = std::string(digit_start + high_digits, digit_count - high_digits);
+    size_t high_digits = ( digit_count > 16 ) ? digit_count - 16 : 0;
+    high_str = std::string( digit_start, high_digits );
+    low_str = std::string( digit_start + high_digits, digit_count - high_digits );
 
     // Parse high and low parts using std::stoull
     uint64_t high = 0, low = 0;
-    try {
-        if (!high_str.empty()) {
-            high = std::stoull(high_str, nullptr, 16);
+    try
+    {
+        if ( !high_str.empty() )
+        {
+            high = std::stoull( high_str, nullptr, 16 );
         }
-        if (!low_str.empty()) {
-            low = std::stoull(low_str, nullptr, 16);
+        if ( !low_str.empty() )
+        {
+            low = std::stoull( low_str, nullptr, 16 );
         }
-    } catch (const std::invalid_argument&) {
-        throw std::invalid_argument("Invalid hexadecimal string");
-    } catch (const std::out_of_range&) {
-        throw std::out_of_range("Value exceeds uint64_t range in high or low part");
+    }
+    catch ( const std::invalid_argument& )
+    {
+        throw std::invalid_argument( "Invalid hexadecimal string" );
+    }
+    catch ( const std::out_of_range& )
+    {
+        throw std::out_of_range( "Value exceeds uint64_t range in high or low part" );
     }
 
     // Combine into __uint128_t
-    return (static_cast<__uint128_t>(high) << 64) | static_cast<__uint128_t>(low);
+    return ( static_cast<__uint128_t>( high ) << 64 ) | static_cast<__uint128_t>( low );
 }
 #endif
 
 void printHelpAndExit()
 {
-    std::cout
-        << "floatexplorer [--float] [--double] " FLOAT128_HELP "[--special] number [number]*\n\n"
-           "Examples:\n"
-           "floatexplorer 1 -2 6 1.5 0.125 -inf # --float is the default\n"
-           "floatexplorer --double 1 -2 6 1.5 0.125 -inf\n"
-           "floatexplorer --float --double 1 # both representations\n";
+    std::cout << "floatexplorer [--float] [--double] " FLOAT128_HELP
+                 "[--special] number [number]*\n\n"
+                 "Examples:\n"
+                 "floatexplorer 1 -2 6 1.5 0.125 -inf # --float is the default\n"
+                 "floatexplorer --double 1 -2 6 1.5 0.125 -inf\n"
+                 "floatexplorer --float --double 1 # both representations\n";
 
     std::exit( 0 );
 }
@@ -436,17 +418,14 @@ int main( int argc, char** argv )
     bool dofloat64{};
     bool dofloat128{};
     bool specialcases{};
-    const struct option long_options[] = { { "help", 0, NULL, 'h' },
-                                           { "float", 0, NULL, 'f' },
+    const struct option long_options[] = { { "help", 0, NULL, 'h' },       { "float", 0, NULL, 'f' },
                                            { "double", 0, NULL, 'd' },
 #ifndef NO_FLOAT128
                                            { "longdouble", 0, NULL, 'l' },
 #endif
-                                           { "special", 0, NULL, 's' },
-                                           { NULL, 0, NULL, 0 } };
+                                           { "special", 0, NULL, 's' },    { NULL, 0, NULL, 0 } };
 
-    while ( -1 !=
-            ( c = getopt_long( argc, argv, "hfds", long_options, NULL ) ) )
+    while ( -1 != ( c = getopt_long( argc, argv, "hfds", long_options, NULL ) ) )
     {
         switch ( c )
         {
@@ -488,11 +467,11 @@ int main( int argc, char** argv )
         if ( dofloat32 )
         {
             float32 tests[] = { 0.0f,
-                              std::numeric_limits<float32>::infinity(),
-                              -std::numeric_limits<float32>::infinity(),
-                              std::numeric_limits<float32>::quiet_NaN(),
-                              1.17549435e-38f,    // Smallest normal
-                              3.4028235e38f };    // Largest normal
+                                std::numeric_limits<float32>::infinity(),
+                                -std::numeric_limits<float32>::infinity(),
+                                std::numeric_limits<float32>::quiet_NaN(),
+                                1.17549435e-38f,    // Smallest normal
+                                3.4028235e38f };    // Largest normal
 
             for ( auto test : tests )
             {
@@ -547,19 +526,19 @@ int main( int argc, char** argv )
         if ( dofloat128 )
         {
             float128 tests[] = {
-                float128(0.0),
+                float128( 0.0 ),
 #ifdef __HAVE_FLOAT128
                 std::numeric_limits<float128>::infinity(),
                 -std::numeric_limits<float128>::infinity(),
                 std::numeric_limits<float128>::quiet_NaN(),
-                0x1.0p-16382L, // Smallest normal float128
-                0x1.ffffffffffffffffffffffffffffp+16383L // Largest normal float128
+                0x1.0p-16382L,                              // Smallest normal float128
+                0x1.ffffffffffffffffffffffffffffp+16383L    // Largest normal float128
 #else
                 HUGE_VALQ,
                 -HUGE_VALQ,
-                nanq(""),
-                0x1.0p-16382Q, // Smallest normal float128
-                0x1.ffffffffffffffffffffffffffffp+16383Q // Largest normal float128
+                nanq( "" ),
+                0x1.0p-16382Q,                              // Smallest normal float128
+                0x1.ffffffffffffffffffffffffffffp+16383Q    // Largest normal float128
 #endif
             };
 
@@ -579,7 +558,7 @@ int main( int argc, char** argv )
 
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( std::uint64_t( 1 ) << FLOAT128_MANTISSA_BITS_HIGH ) - 1;
-            denormal_bits = (denormal_bits << 64) | std::uint64_t(-1);
+            denormal_bits = ( denormal_bits << 64 ) | std::uint64_t( -1 );
             std::memcpy( &f, &denormal_bits, sizeof( float128 ) );
             print_float128_representation( f );
         }
@@ -610,8 +589,7 @@ int main( int argc, char** argv )
                     }
                     else
                     {
-                        std::cerr
-                            << std::format( "Hex Input {} exceeds UINT_MAX, incompatible with --float.\n", t );
+                        std::cerr << std::format( "Hex Input {} exceeds UINT_MAX, incompatible with --float.\n", t );
 
                         throw std::runtime_error( "Bad input." );
                     }
@@ -664,9 +642,8 @@ int main( int argc, char** argv )
         }
         catch ( std::exception& e )
         {
-            std::cerr << std::format(
-                "Failed to convert input '{}' to floating point. error: {}\n",
-                argv[i], e.what() );
+            std::cerr << std::format( "Failed to convert input '{}' to floating point. error: {}\n", argv[i],
+                                      e.what() );
         }
     }
 
