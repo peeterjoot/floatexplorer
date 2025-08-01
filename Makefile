@@ -2,13 +2,21 @@ CXXFLAGS += -g
 CXXFLAGS += -std=c++20
 
 OS := $(shell uname -s)
+MACHINE := $(shell uname -m)
 
-# requires: brew install gcc
+# see README for OS dependencies:
 ifeq ($(OS),Darwin)
 CXX := g++-15
 LDFLAGS += -lquadmath
 CXXFLAGS += -fext-numeric-literals
-CXXFLAGS += -gdwarf-4
+#CXXFLAGS += -gdwarf-4
+endif
+
+ifeq ($(OS),Linux)
+ifeq ($(MACHINE),x86_64)
+LDFLAGS += -lquadmath
+CXXFLAGS += -fext-numeric-literals
+endif
 endif
 
 all : floatexplorer

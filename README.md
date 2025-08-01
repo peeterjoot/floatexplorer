@@ -10,3 +10,14 @@ https://peeterjoot.com/2025/04/23/a-little-float-explorer-program/
 Requires C++20 for `<format>`. Run:
 ```bash
 make
+
+## Dependencies:
+
+Linux x64:
+
+sudo dnf -y install libquadmath
+sudo dnf -y install libquadmath-devel
+
+MacOs:
+
+brew install gcc
