@@ -214,6 +214,7 @@ using float80 = long double;
 
 #define LONG_DOUBLE_IS_FLOAT80
 #else
+#define FLOAT80_HELP ""
 #define FLOAT80_OPTIONS 
 #endif
 
@@ -226,7 +227,12 @@ using float128 = long double;
 #define LONGDOUBLE_OPTIONS { "longdouble", 0, NULL, (int)option_values::longdouble_ },
 
 #define LONG_DOUBLE_IS_FLOAT128
-#elif defined __GNUC__
+#elif defined __APPLE__
+//#define LONG_DOUBLE_IS_FLOAT64
+#define LONGDOUBLE_OPTIONS { "longdouble", 0, NULL, (int)option_values::double_ },
+#endif
+
+#if defined __GNUC__ && !defined LONG_DOUBLE_IS_FLOAT128
 #include <quadmath.h>
 using float128 = __float128;
 #define FLOAT128_SPECIFIER "%Qf"
@@ -257,9 +263,9 @@ using float128 = __float128;
 void print_float80_representation( float80 f )
 {
     static_assert( sizeof( f ) == sizeof( __uint128_t ) );
-#ifdef __HAVE_FLOAT80
-    static_assert( std::numeric_limits<float80>::is_iec559, "IEEE 754 required" );
-#endif
+//#ifdef __HAVE_FLOAT80
+//    static_assert( std::numeric_limits<float80>::is_iec559, "IEEE 754 required" );
+//#endif
 
     __uint128_t x;
     std::memset( &x, 0, sizeof( f ) );
@@ -336,8 +342,10 @@ void print_float80_representation( float80 f )
     }
     else
     {
+        bool isnormal = exponent_with_bias && exponent_with_bias != FLOAT80_EXPONENT_MASK_HIGH;
+
         std::cout << std::format( "number:                {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ),
-                                  mstring, exponent + 1 );
+                          mstring, isnormal ? exponent + 1 : exponent );
     }
 }
 #endif
@@ -689,12 +697,14 @@ int main( int argc, char** argv )
             // Test denormals
             std::cout << "\nSmallest denormal:\n";
             __uint128_t denormal_bits = 0x00000001;
-            std::memcpy( &f, &denormal_bits, sizeof( float80 ) );
+            std::memset( &f, 0, sizeof(f) );
+            std::memcpy( &f, &denormal_bits, 10 );
             print_float80_representation( f );
 
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( __uint128_t( 1 ) << FLOAT80_MANTISSA_BITS ) - 1;
-            std::memcpy( &f, &denormal_bits, sizeof( float80 ) );
+            std::memset( &f, 0, sizeof(f) );
+            std::memcpy( &f, &denormal_bits, 10 );
             print_float80_representation( f );
         }
 #endif
