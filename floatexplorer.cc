@@ -755,8 +755,7 @@ int main( int argc, char** argv )
             print_float128_representation( f );
 
             std::cout << "\nLargest denormal:\n";
-            denormal_bits = ( std::uint64_t( 1 ) << FLOAT128_MANTISSA_BITS_HIGH ) - 1;
-            denormal_bits = ( denormal_bits << 64 ) | std::uint64_t( -1 );
+            denormal_bits = (static_cast<__uint128_t>(1) << 112) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( float128 ) );
             print_float128_representation( f );
         }
