@@ -232,7 +232,8 @@ using float128 = long double;
 #define LONGDOUBLE_OPTIONS { "longdouble", 0, NULL, (int)option_values::double_ },
 #endif
 
-#if defined __GNUC__ && !defined LONG_DOUBLE_IS_FLOAT128
+#if !defined LONG_DOUBLE_IS_FLOAT128
+#if defined __GNUC__
 #include <quadmath.h>
 using float128 = __float128;
 #define FLOAT128_SPECIFIER "%Qf"
@@ -242,6 +243,7 @@ using float128 = __float128;
 #define FLOAT128_HELP ""
 #define NO_FLOAT128
 #define FLOAT128_OPTIONS
+#endif
 #endif
 
 #if !defined LONGDOUBLE_OPTIONS
