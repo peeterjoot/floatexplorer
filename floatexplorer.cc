@@ -228,7 +228,7 @@ using float128 = long double;
 
 #define LONG_DOUBLE_IS_FLOAT128
 #elif defined __APPLE__
-//#define LONG_DOUBLE_IS_FLOAT64
+#define LONG_DOUBLE_IS_FLOAT64
 #define LONGDOUBLE_OPTIONS { "longdouble", 0, NULL, (int)option_values::double_ },
 #endif
 
@@ -582,16 +582,25 @@ int main( int argc, char** argv )
                 dofloat32 = true;
                 break;
             }
+#ifdef LONG_DOUBLE_IS_FLOAT64
+            case option_values::longdouble_:
+#endif
             case option_values::double_:
             {
                 dofloat64 = true;
                 break;
             }
+#ifdef LONG_DOUBLE_IS_FLOAT80
+            case option_values::longdouble_:
+#endif
             case option_values::float80_:
             {
                 dofloat80 = true;
                 break;
             }
+#ifdef LONG_DOUBLE_IS_FLOAT128
+            case option_values::longdouble_:
+#endif
             case option_values::float128_:
             {
                 dofloat128 = true;
