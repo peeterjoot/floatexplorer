@@ -304,7 +304,7 @@ void print_float80_representation( float80 f )
     {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:02X}{:016X}\n"
+            "hex:      {:04X}{:016X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}\n"
@@ -315,7 +315,7 @@ void print_float80_representation( float80 f )
     {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:02X}{:016X}\n"
+            "hex:      {:04X}{:016X}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}                                                     "
