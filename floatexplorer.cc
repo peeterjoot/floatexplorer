@@ -215,7 +215,7 @@ using float80 = long double;
 #define LONG_DOUBLE_IS_FLOAT80
 #else
 #define FLOAT80_HELP ""
-#define FLOAT80_OPTIONS 
+#define FLOAT80_OPTIONS
 #endif
 
 // This is not portable.  There are surely other platforms where long double is an ieee 128 bit floating point:
@@ -263,9 +263,9 @@ using float128 = __float128;
 void print_float80_representation( float80 f )
 {
     static_assert( sizeof( f ) == sizeof( __uint128_t ) );
-//#ifdef __HAVE_FLOAT80
-//    static_assert( std::numeric_limits<float80>::is_iec559, "IEEE 754 required" );
-//#endif
+    // #ifdef __HAVE_FLOAT80
+    //     static_assert( std::numeric_limits<float80>::is_iec559, "IEEE 754 required" );
+    // #endif
 
     __uint128_t x;
     std::memset( &x, 0, sizeof( f ) );
@@ -273,9 +273,10 @@ void print_float80_representation( float80 f )
     std::uint64_t high = x >> 64;
     std::uint64_t mantissa = std::uint64_t( x );
 
-    std::bitset<64> b_high = high;
-    std::bitset<64> b_low = mantissa;
-    std::string bs_high = b_high.to_string();
+    std::bitset<16> high_bits = high & 0xFFFF;
+    std::bitset<64> low_bits = mantissa;
+    std::string bs = high_bits.to_string() + low_bits.to_string();
+
     std::uint64_t exponent_with_bias = high & FLOAT80_EXPONENT_MASK_HIGH;
     std::int64_t exponent;
 
@@ -294,31 +295,31 @@ void print_float80_representation( float80 f )
 
     std::uint64_t sign = high >> FLOAT80_EXPONENT_BITS;
 
-    auto mstring = b_low.to_string();
-    auto estring = bs_high.substr( 1, FLOAT80_EXPONENT_BITS );
+    auto mstring = bs.substr( 80 - FLOAT80_MANTISSA_BITS, FLOAT80_MANTISSA_BITS );
+    auto estring = bs.substr( 1, FLOAT80_EXPONENT_BITS );
 
     if ( exponent_with_bias == FLOAT80_EXPONENT_MASK_HIGH )
     {
         std::cout << std::format(
             "value:    {}\n"
             "hex:      {:02X}{:016X}\n"
-            "bits:     {}{}\n"
+            "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}\n"
             "mantissa:                 {}\n",
-            f, high, mantissa, b_high.to_string(), b_low.to_string(), sign, estring, mstring );
+            f, high, mantissa, bs, sign, estring, mstring );
     }
     else
     {
         std::cout << std::format(
             "value:    {}\n"
             "hex:      {:02X}{:016X}\n"
-            "bits:     {}{}\n"
+            "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}                                                     "
             "({}{}{}{})\n"
             "mantissa:                 {}\n",
-            f, high, mantissa, b_high.to_string(), b_low.to_string(), sign, estring,
+            f, high, mantissa, bs, sign, estring,
             exponent_with_bias ? FLOAT80_EXPONENT_BIAS : 0, exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "",
             exponent, mstring );
     }
@@ -344,8 +345,8 @@ void print_float80_representation( float80 f )
     {
         bool isnormal = exponent_with_bias && exponent_with_bias != FLOAT80_EXPONENT_MASK_HIGH;
 
-        std::cout << std::format( "number:                {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ),
-                          mstring, isnormal ? exponent + 1 : exponent );
+        std::cout << std::format( "number:                {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
+                                  isnormal ? exponent + 1 : exponent );
     }
 }
 #endif
@@ -569,13 +570,12 @@ int main( int argc, char** argv )
         { "double", 0, NULL, (int)option_values::float64_ },
         { "f32", 0, NULL, (int)option_values::float32_ },
         { "f64", 0, NULL, (int)option_values::float64_ },
-        FLOAT80_OPTIONS FLOAT128_OPTIONS LONGDOUBLE_OPTIONS
-        { "special", 0, NULL, (int)option_values::special_ },
+        FLOAT80_OPTIONS FLOAT128_OPTIONS LONGDOUBLE_OPTIONS{ "special", 0, NULL, (int)option_values::special_ },
         { NULL, 0, NULL, 0 } };
 
     while ( -1 != ( c = getopt_long( argc, argv, "hfds", long_options, NULL ) ) )
     {
-        switch ( option_values(c) )
+        switch ( option_values( c ) )
         {
             case option_values::float_:
             {
@@ -692,8 +692,8 @@ int main( int argc, char** argv )
                 std::numeric_limits<float80>::infinity(),
                 -std::numeric_limits<float80>::infinity(),
                 std::numeric_limits<float80>::quiet_NaN(),
-                0x1.0p-16382L, // Smallest normal float128
-                0x1.fffffffffffffffp+16383L // Largest normal float128
+                0x1.0p-16382L,                 // Smallest normal float128
+                0x1.fffffffffffffffp+16383L    // Largest normal float128
             };
 
             for ( auto test : tests )
@@ -706,13 +706,13 @@ int main( int argc, char** argv )
             // Test denormals
             std::cout << "\nSmallest denormal:\n";
             __uint128_t denormal_bits = 0x00000001;
-            std::memset( &f, 0, sizeof(f) );
+            std::memset( &f, 0, sizeof( f ) );
             std::memcpy( &f, &denormal_bits, 10 );
             print_float80_representation( f );
 
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( __uint128_t( 1 ) << FLOAT80_MANTISSA_BITS ) - 1;
-            std::memset( &f, 0, sizeof(f) );
+            std::memset( &f, 0, sizeof( f ) );
             std::memcpy( &f, &denormal_bits, 10 );
             print_float80_representation( f );
         }
@@ -823,7 +823,7 @@ int main( int argc, char** argv )
                 if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                 {
                     __uint128_t u128 = stou128x( argv[i] );
-                    std::memset( &f, 0, sizeof(f) );
+                    std::memset( &f, 0, sizeof( f ) );
                     std::memcpy( &f, &u128, 10 );
                 }
                 else
