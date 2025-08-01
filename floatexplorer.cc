@@ -239,6 +239,104 @@ using float128 = __float128;
 #error platform implementatin of long double is unsupported.
 #endif
 
+#ifdef LONG_DOUBLE_IS_FLOAT80
+// Number of bits in the exponent
+#define FLOAT80_EXPONENT_BITS 15
+
+// Mask to extract the exponent: (2^15 - 1)
+#define FLOAT80_EXPONENT_MASK_HIGH ( ( std::uint64_t( 1 ) << FLOAT80_EXPONENT_BITS ) - 1 )
+
+// Exponent bias: (2^(15-1) - 1) = 16383
+#define FLOAT80_EXPONENT_BIAS ( ( std::uint64_t( 1 ) << ( FLOAT80_EXPONENT_BITS - 1 ) ) - 1 )
+
+void print_float80_representation( float80 f )
+{
+    static_assert( sizeof( f ) == sizeof( __uint128_t ) );
+#ifdef __HAVE_FLOAT80
+    static_assert( std::numeric_limits<float80>::is_iec559, "IEEE 754 required" );
+#endif
+
+    __uint128_t x;
+    std::memset( &x, &f, sizeof( f ) );
+    std::memcpy( &x, &f, 10 );
+    std::uint64_t high = x >> 64;
+    std::uint64_t mantissa = std::uint64_t( x );
+
+    std::bitset<64> b_high = high;
+    std::bitset<64> b_low = mantissa;
+    std::string bs_high = b_high.to_string();
+    std::uint64_t exponent_with_bias = high & FLOAT80_EXPONENT_MASK_HIGH;
+    std::int64_t exponent;
+
+    if ( exponent_with_bias && ( exponent_with_bias != FLOAT80_EXPONENT_MASK_HIGH ) )
+    {
+        exponent = (std::int64_t)exponent_with_bias - FLOAT80_EXPONENT_BIAS;    // Normal
+    }
+    else if ( exponent_with_bias == 0 && mantissa )
+    {
+        exponent = -( FLOAT80_EXPONENT_BIAS - 1 );    // Denormal
+    }
+    else
+    {
+        exponent = 0;    // Zero
+    }
+
+    std::uint64_t sign = high >> FLOAT80_EXPONENT_BITS;
+
+    auto mstring = b_low.to_string();
+    auto estring = bs_high.substr( 1, FLOAT80_EXPONENT_BITS );
+
+    if ( exponent_with_bias == FLOAT80_EXPONENT_MASK_HIGH )
+    {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {:02X}{:016X}\n"
+            "bits:     {}{}\n"
+            "sign:     {}\n"
+            "exponent:  {}\n"
+            "mantissa:                 {}\n",
+            float80_tostring( f ), high, mantissa, b_high.to_string(), b_low.to_string(), sign, estring, mstring );
+    }
+    else
+    {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {:02X}{:016X}\n"
+            "bits:     {}{}\n"
+            "sign:     {}\n"
+            "exponent:  {}                                                     "
+            "({}{}{}{})\n"
+            "mantissa:                 {}\n",
+            float80_tostring( f ), high, mantissa, b_high.to_string(), b_low.to_string(), sign, estring,
+            exponent_with_bias ? FLOAT80_EXPONENT_BIAS : 0, exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "",
+            exponent, mstring );
+    }
+
+    if ( exponent_with_bias == FLOAT80_EXPONENT_MASK_HIGH )
+    {
+        if ( mantissa == 0 )
+        {
+            std::cout << std::format( "number:       {}\n\n", sign ? "-inf" : "+inf" );
+        }
+        else
+        {
+            std::cout << "number:       NaN\n\n";
+        }
+    }
+    else if ( !exponent_with_bias && mantissa )
+    {
+        // Denormal: exponent is −16494, no implicit leading 1
+        std::cout << std::format( "number:                {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
+                                  -( FLOAT80_EXPONENT_BIAS - 1 ) );
+    }
+    else
+    {
+        std::cout << std::format( "number:                {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), x ? 1 : 0,
+                                  mstring, exponent );
+    }
+}
+#endif
+
 #ifndef NO_FLOAT128
 // Number of bits in the mantissa (excluding the implicit bit)
 #define FLOAT128_MANTISSA_BITS_HIGH ( 112 - 64 )
