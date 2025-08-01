@@ -336,8 +336,8 @@ void print_float80_representation( float80 f )
     }
     else
     {
-        std::cout << std::format( "number:                {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), x ? 1 : 0,
-                                  mstring, exponent );
+        std::cout << std::format( "number:                {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ),
+                                  mstring, exponent + 1 );
     }
 }
 #endif
@@ -804,8 +804,8 @@ int main( int argc, char** argv )
                 if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                 {
                     __uint128_t u128 = stou128x( argv[i] );
-                    memset( &f, 0, sizeof(f) );
-                    memcpy( &f, &u128, 10 );
+                    std::memset( &f, 0, sizeof(f) );
+                    std::memcpy( &f, &u128, 10 );
                 }
                 else
                 {
