@@ -621,7 +621,7 @@ int main( int argc, char** argv )
         }
     }
 
-    if ( !dofloat32 && !dofloat64 && !dofloat128 )
+    if ( !dofloat32 && !dofloat64 && !dofloat80 && !dofloat128 )
     {
         dofloat32 = true;
     }

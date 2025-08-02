@@ -7,14 +7,14 @@ MACHINE := $(shell uname -m)
 # see README for OS dependencies:
 ifeq ($(OS),Darwin)
 CXX := g++-15
-LDFLAGS += -lquadmath
+LOADLIBES += -lquadmath
 CXXFLAGS += -fext-numeric-literals
 #CXXFLAGS += -gdwarf-4
 endif
 
 ifeq ($(OS),Linux)
 ifeq ($(MACHINE),x86_64)
-LDFLAGS += -lquadmath
+LOADLIBES += -lquadmath
 CXXFLAGS += -fext-numeric-literals
 endif
 endif

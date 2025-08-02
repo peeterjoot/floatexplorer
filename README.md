@@ -22,10 +22,10 @@ make
 ## Known to build on
 
 * MacOS
-* ARM Linux (fedora)
-* x64 Linux (fedora)
-
-Have not tried on debian yet (any arch), but will do so on my WSL2 instance when I get around to it.
+* ARM Linux (fedora 42)
+* x64 Linux (fedora 42)
+* x64 Linux (fedora 41)
+* x64 Linux (debian Ubuntu 24.04 -- WSL2)
 
 ## Dependencies:
 
@@ -45,15 +45,14 @@ MacOs:
 brew install gcc
 ```
 
-# CUDA dependencies (optional:WIP.)
+# CUDA dependencies (WIP.)
 
-I'm running fedora42, but nvidia only has a fedora41 repo (at the time of writing):
+Want to try BF16 and other types... looks like I need something like the following to try to do that with cuda (but CUDA appears to be unsupported on Fedora42 -- will try on 41.)
 
 ```
 sudo dnf config-manager addrepo --from-repofile=https://developer.download.nvidia.com/compute/cuda/repos/fedora41/$(uname -m)/cuda-fedora41.repo
 sudo dnf module disable nvidia-driver
 sudo dnf config-manager setopt cuda-fedora41-$(uname -m).exclude=nvidia-driver,nvidia-modprobe,nvidia-persistenced,nvidia-settings,nvidia-libXNVCtrl,nvidia-xconfig
 sudo dnf -y install cuda-toolkit
-sudo dnf -y install gcc14 gcc14-c++
 ```
 
