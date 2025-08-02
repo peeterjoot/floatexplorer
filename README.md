@@ -1,10 +1,20 @@
 ## floatexplorer
 
 This is a little bit of code to dump the representation of some floating point types, including:
+
+- e5m2,
+- e4m3,
+- fp16
+- bf16
 - 32-bit (C float), 
-- 64-bit (C double),
-- 128-bit (Linux ARM long double, GCC libquadmath)
+- 64-bit (C double, and long double on some platforms),
 - 80-bit Intel long double (unlike the above, this one doesn't use the IEEE representation, and has an explicit leading mantissa bit.)
+- 128-bit (Linux ARM long double, GCC libquadmath)
+
+## TODO
+
+- See if the HIP API can also do the conversion that I currently only support using the CUDA API.
+- Didn't implement any special values for the GPU types (e5m2, e4m3, fp16, bf16)
 
 ## Discussion
 
@@ -47,12 +57,17 @@ brew install gcc
 
 # CUDA dependencies (WIP.)
 
-Want to try BF16 and other types... looks like I need something like the following to try to do that with cuda (but CUDA appears to be unsupported on Fedora42 -- will try on 41.)
+Support for two GPU types is implemented (e5m2, e4m3).  For string <> float conversions for these types, CUDA support is required (sort of 
+auto-detected in the makefile.)  If using Fedora, note that Fedora 42 (latest) is not currently supported by the cuda toolkit.
+
+BF16, and FP16 TODO.
 
 ```
 sudo dnf config-manager addrepo --from-repofile=https://developer.download.nvidia.com/compute/cuda/repos/fedora41/$(uname -m)/cuda-fedora41.repo
 sudo dnf module disable nvidia-driver
 sudo dnf config-manager setopt cuda-fedora41-$(uname -m).exclude=nvidia-driver,nvidia-modprobe,nvidia-persistenced,nvidia-settings,nvidia-libXNVCtrl,nvidia-xconfig
 sudo dnf -y install cuda-toolkit
+sudo dnf config-manager setopt cuda-fedora41-x86_64.exclude=
+sudo dnf install -y nvidia-driver-cuda --refresh
 ```
 

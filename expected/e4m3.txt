@@ -1,0 +1,8 @@
+value:    3
+hex:      44
+bits:     01000100
+sign:     0
+exponent:  1000                        (7 +1)
+mantissa:      100
+number:      1.100 x 2^(1)
+
