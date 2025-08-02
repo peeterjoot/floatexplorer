@@ -32,6 +32,9 @@ Have not tried on debian yet (any arch), but will do so on my WSL2 instance when
 Linux x64:
 
 ```
+sudo dnf -y install make
+sudo dnf -y install g++
+sudo dnf -y install gcc
 sudo dnf -y install libquadmath
 sudo dnf -y install libquadmath-devel
 ```
