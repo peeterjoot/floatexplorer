@@ -54,5 +54,7 @@ sudo dnf config-manager addrepo --from-repofile=https://developer.download.nvidi
 sudo dnf module disable nvidia-driver
 sudo dnf config-manager setopt cuda-fedora41-$(uname -m).exclude=nvidia-driver,nvidia-modprobe,nvidia-persistenced,nvidia-settings,nvidia-libXNVCtrl,nvidia-xconfig
 sudo dnf -y install cuda-toolkit
+sudo dnf config-manager setopt cuda-fedora41-x86_64.exclude=
+sudo dnf install -y nvidia-driver-cuda --refresh
 ```
 
