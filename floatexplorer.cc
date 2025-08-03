@@ -34,7 +34,7 @@ union float_e4m3 {
     __nv_fp8_storage_t s;
 #endif
 
-    std::string tostring() {
+    std::string tostring() const {
 #if defined HAVE_CUDA
         __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E4M3 );
         float output = __half2float( half );
@@ -44,6 +44,10 @@ union float_e4m3 {
         return "<cvt-unsupported>";
 #endif
     }
+
+    std::string tohex() const {
+        return std::format( "{:02X}", u );
+    }
 };
 
 union float_e5m2 {
@@ -52,7 +56,7 @@ union float_e5m2 {
     __nv_fp8_storage_t s;
 #endif
 
-    std::string tostring() {
+    std::string tostring() const {
 #if defined HAVE_CUDA
         __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E5M2 );
         float output = __half2float( half );
@@ -62,6 +66,10 @@ union float_e5m2 {
         return "<cvt-unsupported>";
 #endif
     }
+
+    std::string tohex() const {
+        return std::format( "{:02X}", u );
+    }
 };
 
 union float_bf16 {
@@ -70,7 +78,7 @@ union float_bf16 {
     __nv_bfloat16 s;
 #endif
 
-    std::string tostring() {
+    std::string tostring() const {
 #if defined HAVE_CUDA
         float output = __bfloat162float( s );
 
@@ -78,6 +86,10 @@ union float_bf16 {
 #else
         return "<cvt-unsupported>";
 #endif
+    }
+
+    std::string tohex() const {
+        return std::format( "{:04X}", u );
     }
 };
 
@@ -87,7 +99,7 @@ union float_fp16 {
     __half s;
 #endif
 
-    std::string tostring() {
+    std::string tostring() const {
 #if defined HAVE_CUDA
         float output = __half2float( s );
 
@@ -96,100 +108,41 @@ union float_fp16 {
         return "<cvt-unsupported>";
 #endif
     }
+
+    std::string tohex() const {
+        return std::format( "{:04X}", u );
+    }
 };
 
 union float_ieee32 {
     uint32_t u;
     float s;
 
-    std::string tostring() {
+    std::string tostring() const {
         return std::format( "{}", s );
+    }
+
+    std::string tohex() const {
+        return std::format( "{:08X}", u );
+    }
+};
+
+union float_ieee64 {
+    uint64_t u;
+    double s;
+
+    std::string tostring() const {
+        return std::format( "{}", s );
+    }
+
+    std::string tohex() const {
+        return std::format( "{:016X}", u );
     }
 };
 
 // 
-// These three are all almost identical, but differs just slightly (hex output count, and number of spaces.)
+// FIXME: These three are all almost identical, but differ just slightly (spacing.)
 //
-template <class T, class U, class S, uint8_t EXPONENT_BITS, uint8_t MANTISSA_BITS>
-void print_float_representation_e5m2( T f )
-{
-    static constexpr U EXPONENT_MASK = ( ( U( 1 ) << EXPONENT_BITS ) - 1 );
-    static constexpr U EXPONENT_BIAS ( ( U( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
-
-    std::bitset<8*sizeof(T)> b = f.u;
-    std::string bs = b.to_string();
-    U mantissa = f.u & ( ( U( 1 ) << MANTISSA_BITS ) - 1 );
-    U exponent_with_bias = ( f.u >> MANTISSA_BITS ) & EXPONENT_MASK;
-    S exponent;
-
-    if ( exponent_with_bias && exponent_with_bias != EXPONENT_MASK )
-    {
-        exponent = (S)exponent_with_bias - EXPONENT_BIAS;    // Normal
-    }
-    else if ( exponent_with_bias == 0 && mantissa != 0 )
-    {
-        exponent = -( EXPONENT_BIAS - 1 );    // Denormal
-    }
-    else
-    {
-        exponent = 0;    // Zero
-    }
-
-    U sign = f.u >> ( EXPONENT_BITS + MANTISSA_BITS );
-
-    auto mstring = bs.substr( 1 + EXPONENT_BITS, MANTISSA_BITS );
-    auto estring = bs.substr( 1, EXPONENT_BITS );
-
-    std::string fs = f.tostring();
-
-    if ( exponent_with_bias == EXPONENT_MASK )
-    {
-        std::cout << std::format(
-            "value:    {}\n"
-            "hex:      {:02X}\n"
-            "bits:     {}\n"
-            "sign:     {}\n"
-            "exponent:  {}\n"
-            "mantissa:       {}\n",
-            fs, f.u, b.to_string(), sign, estring, mstring );
-    }
-    else
-    {
-        std::cout << std::format(
-            "value:    {}\n"
-            "hex:      {:02X}\n"
-            "bits:     {}\n"
-            "sign:     {}\n"
-            "exponent:  {}                        ({}{}{}{})\n"
-            "mantissa:       {}\n",
-            fs, f.u, b.to_string(), sign, estring, exponent_with_bias ? EXPONENT_BIAS : 0,
-            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
-    }
-
-    if ( exponent_with_bias == EXPONENT_MASK )
-    {
-        if ( mantissa == 0 )
-        {
-            std::cout << std::format( "number:     {}\n\n", sign ? "-inf" : "+inf" );
-        }
-        else
-        {
-            std::cout << "number:   NaN\n\n";
-        }
-    }
-    else if ( !exponent_with_bias && mantissa )
-    {
-        // Denormal: exponent is -126, no implicit leading 1
-        std::cout << std::format( "number:      {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
-                                  -( EXPONENT_BIAS - 1 ) );
-    }
-    else
-    {
-        std::cout << std::format( "number:      {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), f.u ? 1 : 0, mstring,
-                                  exponent );
-    }
-}
-
 template <class T, class U, class S, uint8_t EXPONENT_BITS, uint8_t MANTISSA_BITS>
 void print_float_representation_e4m3( T f )
 {
@@ -226,23 +179,23 @@ void print_float_representation_e4m3( T f )
     {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:02X}\n"
+            "hex:      {}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}\n"
             "mantissa:      {}\n",
-            fs, f.u, b.to_string(), sign, estring, mstring );
+            fs, f.tohex(), b.to_string(), sign, estring, mstring );
     }
     else
     {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:02X}\n"
+            "hex:      {}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}                        ({}{}{}{})\n"
             "mantissa:      {}\n",
-            fs, f.u, b.to_string(), sign, estring, exponent_with_bias ? EXPONENT_BIAS : 0,
+            fs, f.tohex(), b.to_string(), sign, estring, exponent_with_bias ? EXPONENT_BIAS : 0,
             exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
     }
 
@@ -266,6 +219,86 @@ void print_float_representation_e4m3( T f )
     else
     {
         std::cout << std::format( "number:     {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), f.u ? 1 : 0, mstring,
+                                  exponent );
+    }
+}
+
+template <class T, class U, class S, uint8_t EXPONENT_BITS, uint8_t MANTISSA_BITS>
+void print_float_representation_e5m2( T f )
+{
+    static constexpr U EXPONENT_MASK = ( ( U( 1 ) << EXPONENT_BITS ) - 1 );
+    static constexpr U EXPONENT_BIAS ( ( U( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+
+    std::bitset<8*sizeof(T)> b = f.u;
+    std::string bs = b.to_string();
+    U mantissa = f.u & ( ( U( 1 ) << MANTISSA_BITS ) - 1 );
+    U exponent_with_bias = ( f.u >> MANTISSA_BITS ) & EXPONENT_MASK;
+    S exponent;
+
+    if ( exponent_with_bias && exponent_with_bias != EXPONENT_MASK )
+    {
+        exponent = (S)exponent_with_bias - EXPONENT_BIAS;    // Normal
+    }
+    else if ( exponent_with_bias == 0 && mantissa != 0 )
+    {
+        exponent = -( EXPONENT_BIAS - 1 );    // Denormal
+    }
+    else
+    {
+        exponent = 0;    // Zero
+    }
+
+    U sign = f.u >> ( EXPONENT_BITS + MANTISSA_BITS );
+
+    auto mstring = bs.substr( 1 + EXPONENT_BITS, MANTISSA_BITS );
+    auto estring = bs.substr( 1, EXPONENT_BITS );
+
+    std::string fs = f.tostring();
+
+    if ( exponent_with_bias == EXPONENT_MASK )
+    {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {}\n"
+            "bits:     {}\n"
+            "sign:     {}\n"
+            "exponent:  {}\n"
+            "mantissa:       {}\n",
+            fs, f.tohex(), b.to_string(), sign, estring, mstring );
+    }
+    else
+    {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {}\n"
+            "bits:     {}\n"
+            "sign:     {}\n"
+            "exponent:  {}                        ({}{}{}{})\n"
+            "mantissa:       {}\n",
+            fs, f.tohex(), b.to_string(), sign, estring, exponent_with_bias ? EXPONENT_BIAS : 0,
+            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
+    }
+
+    if ( exponent_with_bias == EXPONENT_MASK )
+    {
+        if ( mantissa == 0 )
+        {
+            std::cout << std::format( "number:     {}\n\n", sign ? "-inf" : "+inf" );
+        }
+        else
+        {
+            std::cout << "number:   NaN\n\n";
+        }
+    }
+    else if ( !exponent_with_bias && mantissa )
+    {
+        // Denormal: exponent is -126, no implicit leading 1
+        std::cout << std::format( "number:      {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
+                                  -( EXPONENT_BIAS - 1 ) );
+    }
+    else
+    {
+        std::cout << std::format( "number:      {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), f.u ? 1 : 0, mstring,
                                   exponent );
     }
 }
@@ -306,23 +339,23 @@ void print_float_representation( T f )
     {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:08X}\n"
+            "hex:      {}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}\n"
             "mantissa:          {}\n",
-            fs, f.u, b.to_string(), sign, estring, mstring );
+            fs, f.tohex(), b.to_string(), sign, estring, mstring );
     }
     else
     {
         std::cout << std::format(
             "value:    {}\n"
-            "hex:      {:08X}\n"
+            "hex:      {}\n"
             "bits:     {}\n"
             "sign:     {}\n"
             "exponent:  {}                        ({}{}{}{})\n"
             "mantissa:          {}\n",
-            fs, f.u, b.to_string(), sign, estring, exponent_with_bias ? EXPONENT_BIAS : 0,
+            fs, f.tohex(), b.to_string(), sign, estring, exponent_with_bias ? EXPONENT_BIAS : 0,
             exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
     }
 

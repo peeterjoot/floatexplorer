@@ -13,7 +13,7 @@ fp16, bf16: TODO.
 
 ## TODO
 
-The e5m2, e4m3, float32, and float64 code could be merged with a bit more work (which would make fp16 and fp16 easier too.)
+The e5m2, e4m3, float32, and float64 print code should be merged (which would make fp16 and fp16 easier too.)
 
 ## Discussion
 
