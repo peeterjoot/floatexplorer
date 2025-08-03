@@ -14,7 +14,6 @@ This is a little bit of code to dump the representation of some floating point t
 ## TODO
 
 - See if the HIP API can also do the conversion that I currently only support using the CUDA API.
-- Didn't implement any special values for the GPU types (e5m2, e4m3, fp16, bf16)
 
 ## Discussion
 
@@ -57,7 +56,7 @@ brew install gcc
 
 # CUDA dependencies
 
-Support for GPU types (e5m2, e4m3, fp16, bf16) has been implemented.  For string <> float conversions for these types, CUDA support is required (sort of auto-detected in the makefile.)  If using Fedora, note that Fedora 42 (latest) is not currently supported by the cuda toolkit.
+Support for GPU types (e5m2, e4m3, fp16, bf16) has been implemented.  For string <> float conversions for these types, CUDA support is required (rudimentary auto-detection in the makefile.)  If using Fedora, note that Fedora 42 (latest) is not currently supported by the cuda toolkit.
 
 The fedora41 installation sequence was something like:
 

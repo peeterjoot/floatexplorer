@@ -786,74 +786,155 @@ int main( int argc, char** argv )
         switch ( option_values( c ) )
         {
             case option_values::e5m2_:
-            {
                 dofloat_e5m2 = true;
                 break;
-            }
             case option_values::e4m3_:
-            {
                 dofloat_e4m3 = true;
                 break;
-            }
             case option_values::bf16_:
-            {
                 dofloat_bf16 = true;
                 break;
-            }
             case option_values::fp16_:
-            {
                 dofloat_fp16 = true;
                 break;
-            }
             case option_values::float_:
-            {
                 dofloat32 = true;
                 break;
-            }
 #if defined LONG_DOUBLE_IS_FLOAT64
             case option_values::longdouble_:
 #endif
             case option_values::double_:
-            {
                 dofloat64 = true;
                 break;
-            }
 #if defined LONG_DOUBLE_IS_FLOAT80
             case option_values::longdouble_:
 #endif
             case option_values::float80_:
-            {
                 dofloat80 = true;
                 break;
-            }
 #if defined LONG_DOUBLE_IS_FLOAT128
             case option_values::longdouble_:
 #endif
             case option_values::float128_:
-            {
                 dofloat128 = true;
                 break;
-            }
             case option_values::special_:
-            {
                 specialcases = true;
                 break;
-            }
             case option_values::help_:
             default:
-            {
                 printHelpAndExit();
-            }
         }
     }
 
-    if ( !dofloat_e4m3 && !dofloat_e5m2 && !dofloat_bf16 && !dofloat_fp16 && !dofloat32 && !dofloat64 && !dofloat80 && !dofloat128 )
+    if ( !dofloat_e4m3 && !dofloat_e5m2 && !dofloat_bf16 && !dofloat_fp16 && !dofloat32 && !dofloat64 && !dofloat80 &&
+         !dofloat128 )
     {
         dofloat32 = true;
     }
 
     if ( specialcases )
     {
+#if defined HAVE_CUDA
+        if ( dofloat_e4m3 )
+        {
+            float_e4m3 tests[] = {
+                { .u = 0x00 },                                                             // +0
+                { .u = 0x80 },                                                             // -0
+                { .u = 0x7F },                                                             // NaN
+                { .s = __nv_cvt_float_to_fp8( 0.015625f, __NV_SATFINITE, __NV_E4M3 ) },    // Smallest normal ~2^-6
+                { .s = __nv_cvt_float_to_fp8( 448.0f, __NV_SATFINITE, __NV_E4M3 ) },       // Largest normal
+            };
+            for ( auto test : tests )
+            {
+                std::cout << "\nTest value: " << test.tostring() << "\n";
+                print_float_e4m3_representation( test );
+            }
+            float_e4m3 f;
+            std::cout << "\nSmallest denormal:\n";
+            f.u = 0x01;    // 2^-10
+            print_float_e4m3_representation( f );
+            std::cout << "\nLargest denormal:\n";
+            f.u = 0x07;    // 2^-6 * 0.875
+            print_float_e4m3_representation( f );
+        }
+
+        if ( dofloat_e5m2 )
+        {
+            float_e5m2 tests[] = {
+                { .u = 0x00 },                                                                     // +0
+                { .u = 0x80 },                                                                     // -0
+                { .u = 0x7C },                                                                     // +Infinity
+                { .u = 0xFC },                                                                     // -Infinity
+                { .u = 0x7F },                                                                     // NaN
+                { .s = __nv_cvt_float_to_fp8( 0.00006103515625f, __NV_SATFINITE, __NV_E5M2 ) },    // Smallest normal
+                { .s = __nv_cvt_float_to_fp8( 57344.0f, __NV_SATFINITE, __NV_E5M2 ) },             // Largest normal
+            };
+            for ( auto test : tests )
+            {
+                std::cout << "\nTest value: " << test.tostring() << "\n";
+                print_float_e5m2_representation( test );
+            }
+            float_e5m2 f;
+            std::cout << "\nSmallest denormal:\n";
+            f.u = 0x01;    // 2^-16
+            print_float_e5m2_representation( f );
+            std::cout << "\nLargest denormal:\n";
+            f.u = 0x03;    // 2^-14 * 0.75
+            print_float_e5m2_representation( f );
+        }
+
+        if ( dofloat_bf16 )
+        {
+            float_bf16 tests[] = {
+                { .u = 0x0000 },                                 // +0
+                { .u = 0x8000 },                                 // -0
+                { .u = 0x7F80 },                                 // +Infinity
+                { .u = 0xFF80 },                                 // -Infinity
+                { .u = 0x7FC0 },                                 // NaN
+                { .s = __float2bfloat16( 1.17549435e-38f ) },    // Smallest normal
+                { .s = __float2bfloat16( 3.4e38f ) },            // Largest normal
+            };
+            for ( auto test : tests )
+            {
+                std::cout << "\nTest value: " << test.tostring() << "\n";
+                print_float_bf16_representation( test );
+            }
+            float_bf16 f;
+            std::cout << "\nSmallest denormal:\n";
+            f.u = 0x0001;    // 2^-134
+            print_float_bf16_representation( f );
+            std::cout << "\nLargest denormal:\n";
+            f.u = 0x007F;    // 2^-126 * 0.9921875
+            print_float_bf16_representation( f );
+        }
+
+        if ( dofloat_fp16 )
+        {
+            float_fp16 tests[] = {
+                { .u = 0x0000 },                               // +0
+                { .u = 0x8000 },                               // -0
+                { .u = 0x7C00 },                               // +Infinity
+                { .u = 0xFC00 },                               // -Infinity
+                { .u = 0x7E00 },                               // NaN
+                { .s = __float2half( 0.00006103515625f ) },    // Smallest normal
+                { .s = __float2half( 65504.0f ) },             // Largest normal
+            };
+            for ( auto test : tests )
+            {
+                std::cout << "\nTest value: " << test.tostring() << "\n";
+                print_float_fp16_representation( test );
+            }
+            float_fp16 f;
+            std::cout << "\nSmallest denormal:\n";
+            f.u = 0x0001;    // 2^-24
+            print_float_fp16_representation( f );
+            std::cout << "\nLargest denormal:\n";
+            f.u = 0x03FF;    // 2^-14 * 0.99951171875
+            print_float_fp16_representation( f );
+        }
+#endif
+
         if ( dofloat32 )
         {
             float32 tests[] = { 0.0f,
@@ -862,20 +943,16 @@ int main( int argc, char** argv )
                                 std::numeric_limits<float32>::quiet_NaN(),
                                 1.17549435e-38f,    // Smallest normal
                                 3.4028235e38f };    // Largest normal
-
             for ( auto test : tests )
             {
                 std::cout << "\nTest value: " << test << "\n";
                 print_float32_representation( test );
             }
-
             float32 f;
-            // Test denormals
             std::cout << "\nSmallest denormal:\n";
             std::uint32_t denormal_bits = 0x00000001;
             std::memcpy( &f, &denormal_bits, sizeof( float32 ) );
             print_float32_representation( f );
-
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( std::uint32_t( 1 ) << float_ieee32::MANTISSA_BITS ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( float32 ) );
@@ -889,23 +966,19 @@ int main( int argc, char** argv )
                 std::numeric_limits<float64>::infinity(),
                 -std::numeric_limits<float64>::infinity(),
                 std::numeric_limits<float64>::quiet_NaN(),
-                2.2250738585072014e-308,    // Smallest normal double
-                1.7976931348623157e308      // Largest normal double
+                2.2250738585072014e-308,    // Smallest normal
+                1.7976931348623157e308      // Largest normal
             };
-
             for ( auto test : tests )
             {
                 std::cout << "\nTest value: " << test << "\n";
                 print_float64_representation( test );
             }
-
             float64 f;
-            // Test denormals
             std::cout << "\nSmallest denormal:\n";
             std::uint64_t denormal_bits = 0x00000001;
             std::memcpy( &f, &denormal_bits, sizeof( float64 ) );
             print_float64_representation( f );
-
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( std::uint64_t( 1 ) << float_ieee64::MANTISSA_BITS ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( float64 ) );
@@ -920,24 +993,20 @@ int main( int argc, char** argv )
                 std::numeric_limits<float80>::infinity(),
                 -std::numeric_limits<float80>::infinity(),
                 std::numeric_limits<float80>::quiet_NaN(),
-                0x1.0p-16382L,                 // Smallest normal float128
-                0x1.fffffffffffffffp+16383L    // Largest normal float128
+                0x1.0p-16382L,                 // Smallest normal
+                0x1.fffffffffffffffp+16383L    // Largest normal
             };
-
             for ( auto test : tests )
             {
                 std::cout << "\nTest value: " << test << "\n";
                 print_float80_representation( test );
             }
-
             float80 f;
-            // Test denormals
             std::cout << "\nSmallest denormal:\n";
             __uint128_t denormal_bits = 0x00000001;
             std::memset( &f, 0, sizeof( f ) );
             std::memcpy( &f, &denormal_bits, 10 );
             print_float80_representation( f );
-
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( __uint128_t( 1 ) << FLOAT80_MANTISSA_BITS ) - 1;
             std::memset( &f, 0, sizeof( f ) );
@@ -955,31 +1024,26 @@ int main( int argc, char** argv )
                 std::numeric_limits<float128>::infinity(),
                 -std::numeric_limits<float128>::infinity(),
                 std::numeric_limits<float128>::quiet_NaN(),
-                0x1.0p-16382L,                              // Smallest normal float128
-                0x1.ffffffffffffffffffffffffffffp+16383L    // Largest normal float128
+                0x1.0p-16382L,                              // Smallest normal
+                0x1.ffffffffffffffffffffffffffffp+16383L    // Largest normal
 #else
                 HUGE_VALQ,
                 -HUGE_VALQ,
                 nanq( "" ),
-                0x1.0p-16382Q,                              // Smallest normal float128
-                0x1.ffffffffffffffffffffffffffffp+16383Q    // Largest normal float128
+                0x1.0p-16382Q,                              // Smallest normal
+                0x1.ffffffffffffffffffffffffffffp+16383Q    // Largest normal
 #endif
             };
-
             for ( auto test : tests )
             {
                 std::cout << std::format( "\nTest value: {}\n", float128_tostring( test ) );
-
                 print_float128_representation( test );
             }
-
             float128 f;
-            // Test denormals
             std::cout << "\nSmallest denormal:\n";
             __uint128_t denormal_bits = 0x00000001;
             std::memcpy( &f, &denormal_bits, sizeof( float128 ) );
             print_float128_representation( f );
-
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( static_cast<__uint128_t>( 1 ) << 112 ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( float128 ) );
@@ -991,227 +1055,213 @@ int main( int argc, char** argv )
     {
         printHelpAndExit();
     }
-
-    for ( int i = optind; i < argc; i++ )
+    else
     {
-        try
+        for ( int i = optind; i < argc; i++ )
         {
-            if ( dofloat_bf16 )
+            try
             {
-                float_bf16 f;
-                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                if ( dofloat_bf16 )
                 {
-                    unsigned long t;
-                    t = std::stoul( argv[i], nullptr, 16 );
-                    if ( t <= UINT16_MAX )
+                    float_bf16 f;
+                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                     {
-                        f.u = t;
+                        unsigned long t = std::stoul( argv[i], nullptr, 16 );
+                        if ( t <= UINT16_MAX )
+                        {
+                            f.u = t;
+                        }
+                        else
+                        {
+                            std::cerr << std::format( "Hex Input {} exceeds UINT16_MAX, incompatible with --bf16.\n",
+                                                      t );
+                            throw std::runtime_error( "Bad input." );
+                        }
                     }
                     else
                     {
-                        std::cerr << std::format( "Hex Input {} exceeds UINT16_MAX, incompatible with --bf16.\n", t );
-
-                        throw std::runtime_error( "Bad input." );
-                    }
-                }
-                else
-                {
 #if defined HAVE_CUDA
-                    float tf = std::stof( argv[i] );
-                    __nv_bfloat16 bf16 = __float2bfloat16( tf );
-                    f.s = bf16;
+                        float tf = std::stof( argv[i] );
+                        __nv_bfloat16 bf16 = __float2bfloat16( tf );
+                        f.s = bf16;
 #else
-                    throw std::runtime_error( "Conversion from float to bf16 is unsupported." );
+                        throw std::runtime_error( "Conversion from float to bf16 is unsupported." );
 #endif
+                    }
+                    print_float_bf16_representation( f );
                 }
 
-                print_float_bf16_representation( f );
-            }
-
-            if ( dofloat_fp16 )
-            {
-                float_fp16 f;
-                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                if ( dofloat_fp16 )
                 {
-                    unsigned long t;
-                    t = std::stoul( argv[i], nullptr, 16 );
-                    if ( t <= UINT16_MAX )
+                    float_fp16 f;
+                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                     {
-                        f.u = t;
+                        unsigned long t = std::stoul( argv[i], nullptr, 16 );
+                        if ( t <= UINT16_MAX )
+                        {
+                            f.u = t;
+                        }
+                        else
+                        {
+                            std::cerr << std::format( "Hex Input {} exceeds UINT16_MAX, incompatible with --fp16.\n",
+                                                      t );
+                            throw std::runtime_error( "Bad input." );
+                        }
                     }
                     else
                     {
-                        std::cerr << std::format( "Hex Input {} exceeds UINT16_MAX, incompatible with --fp16.\n", t );
-
-                        throw std::runtime_error( "Bad input." );
-                    }
-                }
-                else
-                {
 #if defined HAVE_CUDA
-                    float tf = std::stof( argv[i] );
-                    __half fp16 = __float2half( tf );
-                    f.s = fp16;
+                        float tf = std::stof( argv[i] );
+                        __half fp16 = __float2half( tf );
+                        f.s = fp16;
 #else
-                    throw std::runtime_error( "Conversion from float to fp16 is unsupported." );
+                        throw std::runtime_error( "Conversion from float to fp16 is unsupported." );
 #endif
+                    }
+                    print_float_fp16_representation( f );
                 }
 
-                print_float_fp16_representation( f );
-            }
-
-            if ( dofloat_e4m3 )
-            {
-                float_e4m3 f;
-                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                if ( dofloat_e4m3 )
                 {
-                    unsigned long t;
-                    t = std::stoul( argv[i], nullptr, 16 );
-                    if ( t <= UINT8_MAX )
+                    float_e4m3 f;
+                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                     {
-                        f.u = t;
+                        unsigned long t = std::stoul( argv[i], nullptr, 16 );
+                        if ( t <= UINT8_MAX )
+                        {
+                            f.u = t;
+                        }
+                        else
+                        {
+                            std::cerr << std::format( "Hex Input {} exceeds UINT8_MAX, incompatible with --e4m3.\n",
+                                                      t );
+                            throw std::runtime_error( "Bad input." );
+                        }
                     }
                     else
                     {
-                        std::cerr << std::format( "Hex Input {} exceeds UINT8_MAX, incompatible with --e4m3.\n", t );
-
-                        throw std::runtime_error( "Bad input." );
-                    }
-                }
-                else
-                {
 #if defined HAVE_CUDA
-                    float tf = std::stof( argv[i] );
-                    __nv_fp8_storage_t fp8 = __nv_cvt_float_to_fp8( tf, __NV_SATFINITE, __NV_E4M3 );
-                    f.s = fp8;
+                        float tf = std::stof( argv[i] );
+                        __nv_fp8_storage_t fp8 = __nv_cvt_float_to_fp8( tf, __NV_SATFINITE, __NV_E4M3 );
+                        f.s = fp8;
 #else
-                    throw std::runtime_error( "Conversion from float to e4m3 is unsupported." );
+                        throw std::runtime_error( "Conversion from float to e4m3 is unsupported." );
 #endif
+                    }
+                    print_float_e4m3_representation( f );
                 }
 
-                print_float_e4m3_representation( f );
-            }
-
-            if ( dofloat_e5m2 )
-            {
-                float_e5m2 f;
-                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                if ( dofloat_e5m2 )
                 {
-                    unsigned long t;
-                    t = std::stoul( argv[i], nullptr, 16 );
-                    if ( t <= UINT8_MAX )
+                    float_e5m2 f;
+                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                     {
-                        f.u = t;
+                        unsigned long t = std::stoul( argv[i], nullptr, 16 );
+                        if ( t <= UINT8_MAX )
+                        {
+                            f.u = t;
+                        }
+                        else
+                        {
+                            std::cerr << std::format( "Hex Input {} exceeds UINT8_MAX, incompatible with --e5m2.\n",
+                                                      t );
+                            throw std::runtime_error( "Bad input." );
+                        }
                     }
                     else
                     {
-                        std::cerr << std::format( "Hex Input {} exceeds UINT8_MAX, incompatible with --e5m2.\n", t );
-
-                        throw std::runtime_error( "Bad input." );
-                    }
-                }
-                else
-                {
 #if defined HAVE_CUDA
-                    float tf = std::stof( argv[i] );
-                    __nv_fp8_storage_t fp8 = __nv_cvt_float_to_fp8( tf, __NV_SATFINITE, __NV_E5M2 );
-                    f.s = fp8;
+                        float tf = std::stof( argv[i] );
+                        __nv_fp8_storage_t fp8 = __nv_cvt_float_to_fp8( tf, __NV_SATFINITE, __NV_E5M2 );
+                        f.s = fp8;
 #else
-                    throw std::runtime_error( "Conversion from float to e5m2 is unsupported." );
+                        throw std::runtime_error( "Conversion from float to e5m2 is unsupported." );
 #endif
+                    }
+                    print_float_e5m2_representation( f );
                 }
 
-                print_float_e5m2_representation( f );
-            }
-
-            if ( dofloat32 )
-            {
-                float32 f;
-                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                if ( dofloat32 )
                 {
-                    uint32_t u32;
-                    unsigned long t;
-                    static_assert( sizeof( t ) >= sizeof( u32 ) );
-                    t = std::stoul( argv[i], nullptr, 16 );
-                    if ( t <= UINT_MAX )
+                    float32 f;
+                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                     {
-                        u32 = t;
-                        memcpy( &f, &u32, sizeof( u32 ) );
+                        uint32_t u32;
+                        unsigned long t = std::stoul( argv[i], nullptr, 16 );
+                        if ( t <= UINT_MAX )
+                        {
+                            u32 = t;
+                            memcpy( &f, &u32, sizeof( u32 ) );
+                        }
+                        else
+                        {
+                            std::cerr << std::format( "Hex Input {} exceeds UINT_MAX, incompatible with --float.\n",
+                                                      t );
+                            throw std::runtime_error( "Bad input." );
+                        }
                     }
                     else
                     {
-                        std::cerr << std::format( "Hex Input {} exceeds UINT_MAX, incompatible with --float.\n", t );
-
-                        throw std::runtime_error( "Bad input." );
+                        f = std::stof( argv[i] );
                     }
-                }
-                else
-                {
-                    f = std::stof( argv[i] );
+                    print_float32_representation( f );
                 }
 
-                print_float32_representation( f );
-            }
-
-            if ( dofloat64 )
-            {
-                float64 f;
-                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                if ( dofloat64 )
                 {
-                    uint64_t u64;
-                    static_assert( sizeof( long long ) == sizeof( u64 ) );
-                    u64 = std::stoull( argv[i], nullptr, 16 );
-                    memcpy( &f, &u64, sizeof( u64 ) );
+                    float64 f;
+                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                    {
+                        uint64_t u64 = std::stoull( argv[i], nullptr, 16 );
+                        memcpy( &f, &u64, sizeof( u64 ) );
+                    }
+                    else
+                    {
+                        f = std::stod( argv[i] );
+                    }
+                    print_float64_representation( f );
                 }
-                else
-                {
-                    f = std::stod( argv[i] );
-                }
-
-                print_float64_representation( f );
-            }
 
 #if defined LONG_DOUBLE_IS_FLOAT80
-            if ( dofloat80 )
-            {
-                float80 f{};
-                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                if ( dofloat80 )
                 {
-                    __uint128_t u128 = stou128x( argv[i] );
-                    std::memset( &f, 0, sizeof( f ) );
-                    std::memcpy( &f, &u128, 10 );
+                    float80 f{};
+                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                    {
+                        __uint128_t u128 = stou128x( argv[i] );
+                        std::memset( &f, 0, sizeof( f ) );
+                        std::memcpy( &f, &u128, 10 );
+                    }
+                    else
+                    {
+                        f = std::stold( argv[i] );
+                    }
+                    print_float80_representation( f );
                 }
-                else
-                {
-                    f = std::stold( argv[i] );
-                }
-
-                print_float80_representation( f );
-            }
 #endif
 
 #ifndef NO_FLOAT128
-            if ( dofloat128 )
-            {
-                float128 f;
-                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                if ( dofloat128 )
                 {
-                    __uint128_t u128 = stou128x( argv[i] );
-                    memcpy( &f, &u128, sizeof( u128 ) );
+                    float128 f;
+                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                    {
+                        __uint128_t u128 = stou128x( argv[i] );
+                        memcpy( &f, &u128, sizeof( u128 ) );
+                    }
+                    else
+                    {
+                        f = std::stold( argv[i] );
+                    }
+                    print_float128_representation( f );
                 }
-                else
-                {
-                    f = std::stold( argv[i] );
-                }
-
-                print_float128_representation( f );
-            }
 #endif
-        }
-        catch ( std::exception& e )
-        {
-            std::cerr << std::format( "Failed to convert input '{}' to floating point. error: {}\n", argv[i],
-                                      e.what() );
+            }
+            catch ( std::exception& e )
+            {
+                std::cerr << std::format( "Failed to convert input '{}' to floating point. error: {}\n", argv[i],
+                                          e.what() );
+            }
         }
     }
 

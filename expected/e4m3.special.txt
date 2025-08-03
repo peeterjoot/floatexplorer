@@ -1,0 +1,70 @@
+
+Test value: 0
+value:    0
+hex:      00
+bits:     00000000
+sign:     0
+exponent:  0000                        (0+0)
+mantissa:      000
+number:      0.000 x 2^(0)
+
+
+Test value: -0
+value:    -0
+hex:      80
+bits:     10000000
+sign:     1
+exponent:  0000                        (0+0)
+mantissa:      000
+number:     -1.000 x 2^(0)
+
+
+Test value: nan
+value:    nan
+hex:      7F
+bits:     01111111
+sign:     0
+exponent:  1111
+mantissa:      111
+number:  NaN
+
+
+Test value: 0.015625
+value:    0.015625
+hex:      08
+bits:     00001000
+sign:     0
+exponent:  0001                        (7 -6)
+mantissa:      000
+number:      1.000 x 2^(-6)
+
+
+Test value: 448
+value:    448
+hex:      7E
+bits:     01111110
+sign:     0
+exponent:  1111
+mantissa:      110
+number:  NaN
+
+
+Smallest denormal:
+value:    0.001953125
+hex:      01
+bits:     00000001
+sign:     0
+exponent:  0000                        (0-6)
+mantissa:      001
+number:      0.001 x 2^(-6)
+
+
+Largest denormal:
+value:    0.013671875
+hex:      07
+bits:     00000111
+sign:     0
+exponent:  0000                        (0-6)
+mantissa:      111
+number:      0.111 x 2^(-6)
+
