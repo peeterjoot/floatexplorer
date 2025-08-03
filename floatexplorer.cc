@@ -17,46 +17,292 @@
 #include <stdexcept>
 #include <string>
 
-#define FLOAT32_MANTISSA_BITS 23
-#define FLOAT32_EXPONENT_BITS 8
-#define FLOAT32_EXPONENT_MASK ( ( std::uint32_t( 1 ) << FLOAT32_EXPONENT_BITS ) - 1 )
-#define FLOAT32_EXPONENT_BIAS ( ( std::uint32_t( 1 ) << ( FLOAT32_EXPONENT_BITS - 1 ) ) - 1 )
+#if defined HAVE_CUDA
+#include <cuda_bf16.h>
+#include <cuda_fp16.h>
+#include <cuda_fp8.h>
+#endif
 
-using float32 = float;
+// Type        Exponent-Size   Exponent-Bias Format    (Sign.Exponent.Mantissa)
+// FP8 E4M3    4 bits          7                       1.4.3
+// FP8 E5M2    5 bits          15                      1.5.2
+// BF16        8 bits          127                     1.8.7
+// FP16        5 bits          15                      1.5.10
+union float_e4m3 {
+    uint8_t u;
+#if defined HAVE_CUDA
+    __nv_fp8_storage_t s;
+#endif
 
-void print_float32_representation( float32 f )
+    std::string tostring() {
+#if defined HAVE_CUDA
+        __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E4M3 );
+        float output = __half2float( half );
+
+        return std::format( "{}", output );
+#else
+        return "<cvt-unsupported>";
+#endif
+    }
+};
+
+union float_e5m2 {
+    uint8_t u;
+#if defined HAVE_CUDA
+    __nv_fp8_storage_t s;
+#endif
+
+    std::string tostring() {
+#if defined HAVE_CUDA
+        __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E5M2 );
+        float output = __half2float( half );
+
+        return std::format( "{}", output );
+#else
+        return "<cvt-unsupported>";
+#endif
+    }
+};
+
+union float_bf16 {
+    uint16_t u;
+#if defined HAVE_CUDA
+    __nv_bfloat16 s;
+#endif
+
+    std::string tostring() {
+#if defined HAVE_CUDA
+        float output = __bfloat162float( s );
+
+        return std::format( "{}", output );
+#else
+        return "<cvt-unsupported>";
+#endif
+    }
+};
+
+union float_fp16 {
+    uint16_t u;
+#if defined HAVE_CUDA
+    __half s;
+#endif
+
+    std::string tostring() {
+#if defined HAVE_CUDA
+        float output = __half2float( s );
+
+        return std::format( "{}", output );
+#else
+        return "<cvt-unsupported>";
+#endif
+    }
+};
+
+union float_ieee32 {
+    uint32_t u;
+    float s;
+
+    std::string tostring() {
+        return std::format( "{}", s );
+    }
+};
+
+// 
+// These three are all almost identical, but differs just slightly (hex output count, and number of spaces.)
+//
+template <class T, class U, class S, uint8_t EXPONENT_BITS, uint8_t MANTISSA_BITS>
+void print_float_representation_e5m2( T f )
 {
-    static_assert( sizeof( f ) == sizeof( std::uint32_t ) );
-    static_assert( std::numeric_limits<float32>::is_iec559, "IEEE 754 required" );
+    static constexpr U EXPONENT_MASK = ( ( U( 1 ) << EXPONENT_BITS ) - 1 );
+    static constexpr U EXPONENT_BIAS ( ( U( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
 
-    std::uint32_t x;
-    std::memcpy( &x, &f, sizeof( f ) );
-
-    std::bitset<32> b = x;
+    std::bitset<8*sizeof(T)> b = f.u;
     std::string bs = b.to_string();
-    std::uint32_t mantissa = x & ( ( std::uint32_t( 1 ) << FLOAT32_MANTISSA_BITS ) - 1 );
-    std::uint32_t exponent_with_bias = ( x >> FLOAT32_MANTISSA_BITS ) & FLOAT32_EXPONENT_MASK;
-    std::int32_t exponent;
+    U mantissa = f.u & ( ( U( 1 ) << MANTISSA_BITS ) - 1 );
+    U exponent_with_bias = ( f.u >> MANTISSA_BITS ) & EXPONENT_MASK;
+    S exponent;
 
-    if ( exponent_with_bias && exponent_with_bias != FLOAT32_EXPONENT_MASK )
+    if ( exponent_with_bias && exponent_with_bias != EXPONENT_MASK )
     {
-        exponent = (std::int32_t)exponent_with_bias - FLOAT32_EXPONENT_BIAS;    // Normal
+        exponent = (S)exponent_with_bias - EXPONENT_BIAS;    // Normal
     }
     else if ( exponent_with_bias == 0 && mantissa != 0 )
     {
-        exponent = -( FLOAT32_EXPONENT_BIAS - 1 );    // Denormal
+        exponent = -( EXPONENT_BIAS - 1 );    // Denormal
     }
     else
     {
         exponent = 0;    // Zero
     }
 
-    std::uint32_t sign = x >> ( FLOAT32_EXPONENT_BITS + FLOAT32_MANTISSA_BITS );
+    U sign = f.u >> ( EXPONENT_BITS + MANTISSA_BITS );
 
-    auto mstring = bs.substr( 1 + FLOAT32_EXPONENT_BITS, FLOAT32_MANTISSA_BITS );
-    auto estring = bs.substr( 1, FLOAT32_EXPONENT_BITS );
+    auto mstring = bs.substr( 1 + EXPONENT_BITS, MANTISSA_BITS );
+    auto estring = bs.substr( 1, EXPONENT_BITS );
 
-    if ( exponent_with_bias == FLOAT32_EXPONENT_MASK )
+    std::string fs = f.tostring();
+
+    if ( exponent_with_bias == EXPONENT_MASK )
+    {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {:02X}\n"
+            "bits:     {}\n"
+            "sign:     {}\n"
+            "exponent:  {}\n"
+            "mantissa:       {}\n",
+            fs, f.u, b.to_string(), sign, estring, mstring );
+    }
+    else
+    {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {:02X}\n"
+            "bits:     {}\n"
+            "sign:     {}\n"
+            "exponent:  {}                        ({}{}{}{})\n"
+            "mantissa:       {}\n",
+            fs, f.u, b.to_string(), sign, estring, exponent_with_bias ? EXPONENT_BIAS : 0,
+            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
+    }
+
+    if ( exponent_with_bias == EXPONENT_MASK )
+    {
+        if ( mantissa == 0 )
+        {
+            std::cout << std::format( "number:     {}\n\n", sign ? "-inf" : "+inf" );
+        }
+        else
+        {
+            std::cout << "number:   NaN\n\n";
+        }
+    }
+    else if ( !exponent_with_bias && mantissa )
+    {
+        // Denormal: exponent is -126, no implicit leading 1
+        std::cout << std::format( "number:      {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
+                                  -( EXPONENT_BIAS - 1 ) );
+    }
+    else
+    {
+        std::cout << std::format( "number:      {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), f.u ? 1 : 0, mstring,
+                                  exponent );
+    }
+}
+
+template <class T, class U, class S, uint8_t EXPONENT_BITS, uint8_t MANTISSA_BITS>
+void print_float_representation_e4m3( T f )
+{
+    static constexpr U EXPONENT_MASK = ( ( U( 1 ) << EXPONENT_BITS ) - 1 );
+    static constexpr U EXPONENT_BIAS ( ( U( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+
+    std::bitset<8*sizeof(T)> b = f.u;
+    std::string bs = b.to_string();
+    U mantissa = f.u & ( ( U( 1 ) << MANTISSA_BITS ) - 1 );
+    U exponent_with_bias = ( f.u >> MANTISSA_BITS ) & EXPONENT_MASK;
+    S exponent;
+
+    if ( exponent_with_bias && exponent_with_bias != EXPONENT_MASK )
+    {
+        exponent = (S)exponent_with_bias - EXPONENT_BIAS;    // Normal
+    }
+    else if ( exponent_with_bias == 0 && mantissa != 0 )
+    {
+        exponent = -( EXPONENT_BIAS - 1 );    // Denormal
+    }
+    else
+    {
+        exponent = 0;    // Zero
+    }
+
+    U sign = f.u >> ( EXPONENT_BITS + MANTISSA_BITS );
+
+    auto mstring = bs.substr( 1 + EXPONENT_BITS, MANTISSA_BITS );
+    auto estring = bs.substr( 1, EXPONENT_BITS );
+
+    std::string fs = f.tostring();
+
+    if ( exponent_with_bias == EXPONENT_MASK )
+    {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {:02X}\n"
+            "bits:     {}\n"
+            "sign:     {}\n"
+            "exponent:  {}\n"
+            "mantissa:      {}\n",
+            fs, f.u, b.to_string(), sign, estring, mstring );
+    }
+    else
+    {
+        std::cout << std::format(
+            "value:    {}\n"
+            "hex:      {:02X}\n"
+            "bits:     {}\n"
+            "sign:     {}\n"
+            "exponent:  {}                        ({}{}{}{})\n"
+            "mantissa:      {}\n",
+            fs, f.u, b.to_string(), sign, estring, exponent_with_bias ? EXPONENT_BIAS : 0,
+            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
+    }
+
+    if ( exponent_with_bias == EXPONENT_MASK )
+    {
+        if ( mantissa == 0 )
+        {
+            std::cout << std::format( "number:    {}\n\n", sign ? "-inf" : "+inf" );
+        }
+        else
+        {
+            std::cout << "number:  NaN\n\n";
+        }
+    }
+    else if ( !exponent_with_bias && mantissa )
+    {
+        // Denormal: exponent is -126, no implicit leading 1
+        std::cout << std::format( "number:     {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
+                                  -( EXPONENT_BIAS - 1 ) );
+    }
+    else
+    {
+        std::cout << std::format( "number:     {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), f.u ? 1 : 0, mstring,
+                                  exponent );
+    }
+}
+
+template <class T, class U, class S, uint8_t EXPONENT_BITS, uint8_t MANTISSA_BITS>
+void print_float_representation( T f )
+{
+    static constexpr U EXPONENT_MASK = ( ( U( 1 ) << EXPONENT_BITS ) - 1 );
+    static constexpr U EXPONENT_BIAS ( ( U( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+
+    std::bitset<8*sizeof(T)> b = f.u;
+    std::string bs = b.to_string();
+    U mantissa = f.u & ( ( U( 1 ) << MANTISSA_BITS ) - 1 );
+    U exponent_with_bias = ( f.u >> MANTISSA_BITS ) & EXPONENT_MASK;
+    S exponent;
+
+    if ( exponent_with_bias && exponent_with_bias != EXPONENT_MASK )
+    {
+        exponent = (S)exponent_with_bias - EXPONENT_BIAS;    // Normal
+    }
+    else if ( exponent_with_bias == 0 && mantissa != 0 )
+    {
+        exponent = -( EXPONENT_BIAS - 1 );    // Denormal
+    }
+    else
+    {
+        exponent = 0;    // Zero
+    }
+
+    U sign = f.u >> ( EXPONENT_BITS + MANTISSA_BITS );
+
+    auto mstring = bs.substr( 1 + EXPONENT_BITS, MANTISSA_BITS );
+    auto estring = bs.substr( 1, EXPONENT_BITS );
+
+    std::string fs = f.tostring();
+
+    if ( exponent_with_bias == EXPONENT_MASK )
     {
         std::cout << std::format(
             "value:    {}\n"
@@ -65,7 +311,7 @@ void print_float32_representation( float32 f )
             "sign:     {}\n"
             "exponent:  {}\n"
             "mantissa:          {}\n",
-            f, x, b.to_string(), sign, estring, mstring );
+            fs, f.u, b.to_string(), sign, estring, mstring );
     }
     else
     {
@@ -76,11 +322,11 @@ void print_float32_representation( float32 f )
             "sign:     {}\n"
             "exponent:  {}                        ({}{}{}{})\n"
             "mantissa:          {}\n",
-            f, x, b.to_string(), sign, estring, exponent_with_bias ? FLOAT32_EXPONENT_BIAS : 0,
+            fs, f.u, b.to_string(), sign, estring, exponent_with_bias ? EXPONENT_BIAS : 0,
             exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
     }
 
-    if ( exponent_with_bias == FLOAT32_EXPONENT_MASK )
+    if ( exponent_with_bias == EXPONENT_MASK )
     {
         if ( mantissa == 0 )
         {
@@ -95,13 +341,36 @@ void print_float32_representation( float32 f )
     {
         // Denormal: exponent is -126, no implicit leading 1
         std::cout << std::format( "number:         {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
-                                  -( FLOAT32_EXPONENT_BIAS - 1 ) );
+                                  -( EXPONENT_BIAS - 1 ) );
     }
     else
     {
-        std::cout << std::format( "number:         {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), x ? 1 : 0, mstring,
+        std::cout << std::format( "number:         {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), f.u ? 1 : 0, mstring,
                                   exponent );
     }
+}
+
+void print_float_e5m2_representation( float_e5m2 f )
+{
+    print_float_representation_e5m2<float_e5m2, std::uint8_t, std::int8_t, 5, 2>( f );
+}
+
+void print_float_e4m3_representation( float_e4m3 f )
+{
+    print_float_representation_e4m3<float_e4m3, std::uint8_t, std::int8_t, 4, 3>( f );
+}
+
+using float32 = float;
+
+#define FLOAT32_MANTISSA_BITS 23
+#define FLOAT32_EXPONENT_BITS 8
+
+void print_float32_representation( float32 f )
+{
+    float_ieee32 x;
+    x.s = f;
+
+    print_float_representation<float_ieee32, std::uint32_t, std::int32_t, FLOAT32_EXPONENT_BITS, FLOAT32_MANTISSA_BITS>( x );
 }
 
 #define FLOAT64_MANTISSA_BITS 52
@@ -194,6 +463,8 @@ void print_float64_representation( float64 f )
 
 enum class option_values : int
 {
+    e5m2_ = '2',
+    e4m3_ = '3',
     float_ = '4',
     float32_ = '4',
     float64_ = '8',
@@ -233,7 +504,7 @@ using float128 = long double;
 #endif
 
 #if !defined LONG_DOUBLE_IS_FLOAT128
-#if defined __GNUC__
+#if defined __GNUC__ && defined USE_QUADMATH
 #include <quadmath.h>
 using float128 = __float128;
 #define FLOAT128_SPECIFIER "%Qf"
@@ -250,7 +521,7 @@ using float128 = __float128;
 #error Implementation of long double on this platform is not unsupported.
 #endif
 
-#ifdef LONG_DOUBLE_IS_FLOAT80
+#if defined LONG_DOUBLE_IS_FLOAT80
 #define FLOAT80_MANTISSA_BITS 64
 
 // Number of bits in the exponent
@@ -265,7 +536,7 @@ using float128 = __float128;
 void print_float80_representation( float80 f )
 {
     static_assert( sizeof( f ) == sizeof( __uint128_t ) );
-    // #ifdef __HAVE_FLOAT80
+    // #if defined __HAVE_FLOAT80
     //     static_assert( std::numeric_limits<float80>::is_iec559, "IEEE 754 required" );
     // #endif
 
@@ -369,10 +640,12 @@ void print_float80_representation( float80 f )
 std::string float128_tostring( float128 f )
 {
     char buffer[128];
-#ifdef LONG_DOUBLE_IS_FLOAT128
+#if defined USE_QUADMATH
+    quadmath_snprintf( buffer, sizeof( buffer ), FLOAT128_SPECIFIER, f );
+#elif defined LONG_DOUBLE_IS_FLOAT128
     snprintf( buffer, sizeof( buffer ), FLOAT128_SPECIFIER, f );
 #else
-    quadmath_snprintf( buffer, sizeof( buffer ), FLOAT128_SPECIFIER, f );
+    #error conversion from float128 to string is not supported.
 #endif
     return buffer;
 }
@@ -380,7 +653,7 @@ std::string float128_tostring( float128 f )
 void print_float128_representation( float128 f )
 {
     static_assert( sizeof( f ) == sizeof( __uint128_t ) );
-#ifdef LONG_DOUBLE_IS_FLOAT128
+#if defined LONG_DOUBLE_IS_FLOAT128
     static_assert( std::numeric_limits<float128>::is_iec559, "IEEE 754 required" );
 #endif
 
@@ -548,7 +821,7 @@ __uint128_t stou128x( const char* str, char** endptr = nullptr )
 
 void printHelpAndExit()
 {
-    std::cout << "floatexplorer [--float] [--double] " FLOAT80_HELP FLOAT128_HELP
+    std::cout << "floatexplorer [--e5m2] [--e4m3] [--float] [--double] " FLOAT80_HELP FLOAT128_HELP
                  "[--special] number [number]*\n\n"
                  "Examples:\n"
                  "floatexplorer 1 -2 6 1.5 0.125 -inf # --float is the default\n"
@@ -561,6 +834,8 @@ void printHelpAndExit()
 int main( int argc, char** argv )
 {
     int c;
+    bool dofloat_e5m2{};
+    bool dofloat_e4m3{};
     bool dofloat32{};
     bool dofloat64{};
     bool dofloat80{};
@@ -568,6 +843,8 @@ int main( int argc, char** argv )
     bool specialcases{};
     const struct option long_options[] = {
         { "help", 0, NULL, (int)option_values::help_ },
+        { "e5m2", 0, NULL, (int)option_values::e5m2_ },
+        { "e4m3", 0, NULL, (int)option_values::e4m3_ },
         { "float", 0, NULL, (int)option_values::float_ },
         { "double", 0, NULL, (int)option_values::float64_ },
         { "f32", 0, NULL, (int)option_values::float32_ },
@@ -579,12 +856,22 @@ int main( int argc, char** argv )
     {
         switch ( option_values( c ) )
         {
+            case option_values::e5m2_:
+            {
+                dofloat_e5m2 = true;
+                break;
+            }
+            case option_values::e4m3_:
+            {
+                dofloat_e4m3 = true;
+                break;
+            }
             case option_values::float_:
             {
                 dofloat32 = true;
                 break;
             }
-#ifdef LONG_DOUBLE_IS_FLOAT64
+#if defined LONG_DOUBLE_IS_FLOAT64
             case option_values::longdouble_:
 #endif
             case option_values::double_:
@@ -592,7 +879,7 @@ int main( int argc, char** argv )
                 dofloat64 = true;
                 break;
             }
-#ifdef LONG_DOUBLE_IS_FLOAT80
+#if defined LONG_DOUBLE_IS_FLOAT80
             case option_values::longdouble_:
 #endif
             case option_values::float80_:
@@ -600,7 +887,7 @@ int main( int argc, char** argv )
                 dofloat80 = true;
                 break;
             }
-#ifdef LONG_DOUBLE_IS_FLOAT128
+#if defined LONG_DOUBLE_IS_FLOAT128
             case option_values::longdouble_:
 #endif
             case option_values::float128_:
@@ -621,7 +908,7 @@ int main( int argc, char** argv )
         }
     }
 
-    if ( !dofloat32 && !dofloat64 && !dofloat80 && !dofloat128 )
+    if ( !dofloat_e4m3 && !dofloat_e5m2 && !dofloat32 && !dofloat64 && !dofloat80 && !dofloat128 )
     {
         dofloat32 = true;
     }
@@ -725,7 +1012,7 @@ int main( int argc, char** argv )
         {
             float128 tests[] = {
                 float128( 0.0 ),
-#ifdef LONG_DOUBLE_IS_FLOAT128
+#if defined LONG_DOUBLE_IS_FLOAT128
                 std::numeric_limits<float128>::infinity(),
                 -std::numeric_limits<float128>::infinity(),
                 std::numeric_limits<float128>::quiet_NaN(),
@@ -770,6 +1057,70 @@ int main( int argc, char** argv )
     {
         try
         {
+            if ( dofloat_e4m3 )
+            {
+                float_e4m3 f;
+                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                {
+                    unsigned long t;
+                    t = std::stoul( argv[i], nullptr, 16 );
+                    if ( t <= UINT8_MAX )
+                    {
+                        f.u = t;
+                    }
+                    else
+                    {
+                        std::cerr << std::format( "Hex Input {} exceeds UINT8_MAX, incompatible with --e4m3.\n", t );
+
+                        throw std::runtime_error( "Bad input." );
+                    }
+                }
+                else
+                {
+#if defined HAVE_CUDA
+                    float tf = std::stof( argv[i] );
+                    __nv_fp8_storage_t fp8 = __nv_cvt_float_to_fp8( tf, __NV_SATFINITE, __NV_E4M3 );
+                    f.s = fp8;
+#else
+                    throw std::runtime_error( "Conversion from float to e4m3 is unsupported." );
+#endif
+                }
+
+                print_float_e4m3_representation( f );
+            }
+
+            if ( dofloat_e5m2 )
+            {
+                float_e5m2 f;
+                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                {
+                    unsigned long t;
+                    t = std::stoul( argv[i], nullptr, 16 );
+                    if ( t <= UINT8_MAX )
+                    {
+                        f.u = t;
+                    }
+                    else
+                    {
+                        std::cerr << std::format( "Hex Input {} exceeds UINT8_MAX, incompatible with --e5m2.\n", t );
+
+                        throw std::runtime_error( "Bad input." );
+                    }
+                }
+                else
+                {
+#if defined HAVE_CUDA
+                    float tf = std::stof( argv[i] );
+                    __nv_fp8_storage_t fp8 = __nv_cvt_float_to_fp8( tf, __NV_SATFINITE, __NV_E5M2 );
+                    f.s = fp8;
+#else
+                    throw std::runtime_error( "Conversion from float to e5m2 is unsupported." );
+#endif
+                }
+
+                print_float_e5m2_representation( f );
+            }
+
             if ( dofloat32 )
             {
                 float32 f;
@@ -817,7 +1168,7 @@ int main( int argc, char** argv )
                 print_float64_representation( f );
             }
 
-#ifdef LONG_DOUBLE_IS_FLOAT80
+#if defined LONG_DOUBLE_IS_FLOAT80
             if ( dofloat80 )
             {
                 float80 f{};
