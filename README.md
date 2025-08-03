@@ -13,8 +13,8 @@ fp16, bf16: TODO.
 
 ## TODO
 
-Merge float<e5m2, e4m3, float32> and float64 print code.
-Then do fp16 and bf16.
+- Implement fp16 and bf16.
+- HIP variants for the conversions?
 
 ## Discussion
 

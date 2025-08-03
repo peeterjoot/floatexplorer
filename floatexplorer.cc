@@ -28,8 +28,8 @@
 // FP8 E5M2    5 bits          15                      1.5.2
 // BF16        8 bits          127                     1.8.7
 // FP16        5 bits          15                      1.5.10
-union float_e4m3 {
-
+union float_e4m3
+{
     using UNSIGNED_TYPE = std::uint8_t;
     using SIGNED_TYPE = std::int8_t;
 
@@ -41,7 +41,8 @@ union float_e4m3 {
     __nv_fp8_storage_t s;
 #endif
 
-    std::string tostring() const {
+    std::string tostring() const
+    {
 #if defined HAVE_CUDA
         __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E4M3 );
         float output = __half2float( half );
@@ -52,16 +53,24 @@ union float_e4m3 {
 #endif
     }
 
-    std::string tohex() const {
+    std::string tohex() const
+    {
         return std::format( "{:02X}", u );
     }
 
-    std::string espace() const {
+    std::string espace() const
+    {
+        return "";
+    }
+
+    std::string espace2() const
+    {
         return "";
     }
 };
 
-union float_e5m2 {
+union float_e5m2
+{
     using UNSIGNED_TYPE = std::uint8_t;
     using SIGNED_TYPE = std::int8_t;
 
@@ -74,7 +83,8 @@ union float_e5m2 {
     __nv_fp8_storage_t s;
 #endif
 
-    std::string tostring() const {
+    std::string tostring() const
+    {
 #if defined HAVE_CUDA
         __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E5M2 );
         float output = __half2float( half );
@@ -85,16 +95,24 @@ union float_e5m2 {
 #endif
     }
 
-    std::string tohex() const {
+    std::string tohex() const
+    {
         return std::format( "{:02X}", u );
     }
 
-    std::string espace() const {
+    std::string espace() const
+    {
         return " ";
+    }
+
+    std::string espace2() const
+    {
+        return "";
     }
 };
 
-union float_bf16 {
+union float_bf16
+{
     using UNSIGNED_TYPE = std::uint16_t;
     using SIGNED_TYPE = std::int16_t;
 
@@ -107,7 +125,8 @@ union float_bf16 {
     __nv_bfloat16 s;
 #endif
 
-    std::string tostring() const {
+    std::string tostring() const
+    {
 #if defined HAVE_CUDA
         float output = __bfloat162float( s );
 
@@ -117,16 +136,24 @@ union float_bf16 {
 #endif
     }
 
-    std::string tohex() const {
+    std::string tohex() const
+    {
         return std::format( "{:04X}", u );
     }
 
-    std::string espace() const {
+    std::string espace() const
+    {
         return "    ";
+    }
+
+    std::string espace2() const
+    {
+        return "";
     }
 };
 
-union float_fp16 {
+union float_fp16
+{
     using UNSIGNED_TYPE = std::uint16_t;
     using SIGNED_TYPE = std::int16_t;
 
@@ -139,7 +166,8 @@ union float_fp16 {
     __half s;
 #endif
 
-    std::string tostring() const {
+    std::string tostring() const
+    {
 #if defined HAVE_CUDA
         float output = __half2float( s );
 
@@ -149,16 +177,24 @@ union float_fp16 {
 #endif
     }
 
-    std::string tohex() const {
+    std::string tohex() const
+    {
         return std::format( "{:04X}", u );
     }
 
-    std::string espace() const {
+    std::string espace() const
+    {
         return " ";
+    }
+
+    std::string espace2() const
+    {
+        return "";
     }
 };
 
-union float_ieee32 {
+union float_ieee32
+{
     using UNSIGNED_TYPE = std::uint32_t;
     using SIGNED_TYPE = std::int32_t;
 
@@ -169,20 +205,29 @@ union float_ieee32 {
 
     float s;
 
-    std::string tostring() const {
+    std::string tostring() const
+    {
         return std::format( "{}", s );
     }
 
-    std::string tohex() const {
+    std::string tohex() const
+    {
         return std::format( "{:08X}", u );
     }
 
-    std::string espace() const {
+    std::string espace() const
+    {
         return "    ";
+    }
+
+    std::string espace2() const
+    {
+        return "";
     }
 };
 
-union float_ieee64 {
+union float_ieee64
+{
     using UNSIGNED_TYPE = std::uint64_t;
     using SIGNED_TYPE = std::int64_t;
 
@@ -192,26 +237,36 @@ union float_ieee64 {
     UNSIGNED_TYPE u;
     double s;
 
-    std::string tostring() const {
+    std::string tostring() const
+    {
         return std::format( "{}", s );
     }
 
-    std::string tohex() const {
+    std::string tohex() const
+    {
         return std::format( "{:016X}", u );
     }
 
-    std::string espace() const {
+    std::string espace() const
+    {
         return "       ";
+    }
+
+    std::string espace2() const
+    {
+        return "                             ";
     }
 };
 
 template <class T>
 void print_float_representation( T f )
 {
-    static constexpr typename T::UNSIGNED_TYPE EXPONENT_MASK = ( ( typename T::UNSIGNED_TYPE( 1 ) << T::EXPONENT_BITS ) - 1 );
-    static constexpr typename T::UNSIGNED_TYPE EXPONENT_BIAS ( ( typename T::UNSIGNED_TYPE( 1 ) << ( T::EXPONENT_BITS - 1 ) ) - 1 );
+    static constexpr typename T::UNSIGNED_TYPE EXPONENT_MASK =
+        ( ( typename T::UNSIGNED_TYPE( 1 ) << T::EXPONENT_BITS ) - 1 );
+    static constexpr
+        typename T::UNSIGNED_TYPE EXPONENT_BIAS( ( typename T::UNSIGNED_TYPE( 1 ) << ( T::EXPONENT_BITS - 1 ) ) - 1 );
 
-    std::bitset<8*sizeof(T)> b = f.u;
+    std::bitset<8 * sizeof( T )> b = f.u;
     std::string bs = b.to_string();
     typename T::UNSIGNED_TYPE mantissa = f.u & ( ( typename T::UNSIGNED_TYPE( 1 ) << T::MANTISSA_BITS ) - 1 );
     typename T::UNSIGNED_TYPE exponent_with_bias = ( f.u >> T::MANTISSA_BITS ) & EXPONENT_MASK;
@@ -256,9 +311,9 @@ void print_float_representation( T f )
             "hex:      {}\n"
             "bits:     {}\n"
             "sign:     {}\n"
-            "exponent:  {}                        ({}{}{}{})\n"
+            "exponent:  {}                        {}({}{}{}{})\n"
             "mantissa:      {}{}\n",
-            fs, f.tohex(), b.to_string(), sign, estring, exponent_with_bias ? EXPONENT_BIAS : 0,
+            fs, f.tohex(), b.to_string(), sign, estring, f.espace2(), exponent_with_bias ? EXPONENT_BIAS : 0,
             exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, es, mstring );
     }
 
@@ -300,16 +355,12 @@ using float32 = float;
 
 void print_float32_representation( float32 f )
 {
+    static_assert( std::numeric_limits<float32>::is_iec559, "IEEE 754 required" );
     float_ieee32 x;
     x.s = f;
 
     print_float_representation<float_ieee32>( x );
 }
-
-#define FLOAT64_MANTISSA_BITS 52
-#define FLOAT64_EXPONENT_BITS 11
-#define FLOAT64_EXPONENT_MASK ( ( std::uint64_t( 1 ) << FLOAT64_EXPONENT_BITS ) - 1 )
-#define FLOAT64_EXPONENT_BIAS ( ( std::uint64_t( 1 ) << ( FLOAT64_EXPONENT_BITS - 1 ) ) - 1 )
 
 using float64 = double;
 
@@ -318,80 +369,10 @@ void print_float64_representation( float64 f )
     static_assert( sizeof( f ) == sizeof( std::uint64_t ) );
     static_assert( std::numeric_limits<float64>::is_iec559, "IEEE 754 required" );
 
-    std::uint64_t x;
-    std::memcpy( &x, &f, sizeof( f ) );
+    float_ieee64 x;
+    x.s = f;
 
-    std::bitset<64> b = x;
-    std::string bs = b.to_string();
-    std::uint64_t mantissa = x & ( ( std::uint64_t( 1 ) << FLOAT64_MANTISSA_BITS ) - 1 );
-    std::uint64_t exponent_with_bias = ( x >> FLOAT64_MANTISSA_BITS ) & FLOAT64_EXPONENT_MASK;
-    std::int64_t exponent;
-
-    if ( exponent_with_bias && exponent_with_bias != FLOAT64_EXPONENT_MASK )
-    {
-        exponent = (std::int64_t)exponent_with_bias - FLOAT64_EXPONENT_BIAS;    // Normal
-    }
-    else if ( exponent_with_bias == 0 && mantissa != 0 )
-    {
-        exponent = -( FLOAT64_EXPONENT_BIAS - 1 );    // Denormal
-    }
-    else
-    {
-        exponent = 0;    // Zero
-    }
-
-    std::uint64_t sign = x >> ( FLOAT64_EXPONENT_BITS + FLOAT64_MANTISSA_BITS );
-
-    auto mstring = bs.substr( 1 + FLOAT64_EXPONENT_BITS, FLOAT64_MANTISSA_BITS );
-    auto estring = bs.substr( 1, FLOAT64_EXPONENT_BITS );
-
-    if ( exponent_with_bias == FLOAT64_EXPONENT_MASK )
-    {
-        std::cout << std::format(
-            "value:    {}\n"
-            "hex:      {:016X}\n"
-            "bits:     {}\n"
-            "sign:     {}\n"
-            "exponent:  {}\n"
-            "mantissa:          {}\n",
-            f, x, b.to_string(), sign, estring, mstring );
-    }
-    else
-    {
-        std::cout << std::format(
-            "value:    {}\n"
-            "hex:      {:016X}\n"
-            "bits:     {}\n"
-            "sign:     {}\n"
-            "exponent:  {}                                                     "
-            "({}{}{}{})\n"
-            "mantissa:             {}\n",
-            f, x, b.to_string(), sign, estring, exponent_with_bias ? FLOAT64_EXPONENT_BIAS : 0,
-            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
-    }
-
-    if ( exponent_with_bias == FLOAT64_EXPONENT_MASK )
-    {
-        if ( mantissa == 0 )
-        {
-            std::cout << std::format( "number:   {}\n\n", sign ? "-inf" : "+inf" );
-        }
-        else
-        {
-            std::cout << "number:   NaN\n\n";
-        }
-    }
-    else if ( !exponent_with_bias && mantissa )
-    {
-        // Denormal: exponent is -126, no implicit leading 1
-        std::cout << std::format( "number:            {}0.{} x 2^({})\n\n", ( sign ? "-" : " " ), mstring,
-                                  -( FLOAT64_EXPONENT_BIAS - 1 ) );
-    }
-    else
-    {
-        std::cout << std::format( "number:            {}{}.{} x 2^({})\n\n", ( sign ? "-" : " " ), x ? 1 : 0, mstring,
-                                  exponent );
-    }
+    print_float_representation<float_ieee64>( x );
 }
 
 enum class option_values : int
@@ -525,9 +506,8 @@ void print_float80_representation( float80 f )
             "exponent:  {}                                                     "
             "({}{}{}{})\n"
             "mantissa:                 {}\n",
-            f, high, mantissa, bs, sign, estring,
-            exponent_with_bias ? FLOAT80_EXPONENT_BIAS : 0, exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "",
-            exponent, mstring );
+            f, high, mantissa, bs, sign, estring, exponent_with_bias ? FLOAT80_EXPONENT_BIAS : 0,
+            exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, mstring );
     }
 
     if ( exponent_with_bias == FLOAT80_EXPONENT_MASK_HIGH )
@@ -578,7 +558,7 @@ std::string float128_tostring( float128 f )
 #elif defined LONG_DOUBLE_IS_FLOAT128
     snprintf( buffer, sizeof( buffer ), FLOAT128_SPECIFIER, f );
 #else
-    #error conversion from float128 to string is not supported.
+#error conversion from float128 to string is not supported.
 #endif
     return buffer;
 }
@@ -901,7 +881,7 @@ int main( int argc, char** argv )
             print_float64_representation( f );
 
             std::cout << "\nLargest denormal:\n";
-            denormal_bits = ( std::uint64_t( 1 ) << FLOAT64_MANTISSA_BITS ) - 1;
+            denormal_bits = ( std::uint64_t( 1 ) << float_ieee64::MANTISSA_BITS ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( float64 ) );
             print_float64_representation( f );
         }
@@ -975,7 +955,7 @@ int main( int argc, char** argv )
             print_float128_representation( f );
 
             std::cout << "\nLargest denormal:\n";
-            denormal_bits = (static_cast<__uint128_t>(1) << 112) - 1;
+            denormal_bits = ( static_cast<__uint128_t>( 1 ) << 112 ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( float128 ) );
             print_float128_representation( f );
         }
