@@ -23,6 +23,7 @@
 #include <cuda_fp8.h>
 #endif
 
+
 // Type        Exponent-Size   Exponent-Bias Format    (Sign.Exponent.Mantissa)
 // FP8 E4M3    4 bits          7                       1.4.3
 // FP8 E5M2    5 bits          15                      1.5.2
@@ -36,22 +37,17 @@ union float_e4m3
     static constexpr UNSIGNED_TYPE EXPONENT_BITS = 4;
     static constexpr UNSIGNED_TYPE MANTISSA_BITS = 3;
 
+    static constexpr UNSIGNED_TYPE EXPONENT_MASK = ( ( UNSIGNED_TYPE( 1 ) << EXPONENT_BITS ) - 1 );
+    static constexpr UNSIGNED_TYPE EXPONENT_BIAS = ( ( UNSIGNED_TYPE( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+
     UNSIGNED_TYPE u;
 #if defined HAVE_CUDA
     __nv_fp8_storage_t s;
 #endif
 
-    std::string tostring() const
-    {
-#if defined HAVE_CUDA
-        __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E4M3 );
-        float output = __half2float( half );
+    void fromFloat( float tf );
 
-        return std::format( "{}", output );
-#else
-        return "<cvt-unsupported>";
-#endif
-    }
+    std::string tostring() const;
 
     std::string tohex() const
     {
@@ -77,23 +73,18 @@ union float_e5m2
     static constexpr UNSIGNED_TYPE EXPONENT_BITS = 5;
     static constexpr UNSIGNED_TYPE MANTISSA_BITS = 2;
 
+    static constexpr UNSIGNED_TYPE EXPONENT_MASK = ( ( UNSIGNED_TYPE( 1 ) << EXPONENT_BITS ) - 1 );
+    static constexpr UNSIGNED_TYPE EXPONENT_BIAS = ( ( UNSIGNED_TYPE( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+
     UNSIGNED_TYPE u;
 
 #if defined HAVE_CUDA
     __nv_fp8_storage_t s;
 #endif
 
-    std::string tostring() const
-    {
-#if defined HAVE_CUDA
-        __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E5M2 );
-        float output = __half2float( half );
+    void fromFloat( float tf );
 
-        return std::format( "{}", output );
-#else
-        return "<cvt-unsupported>";
-#endif
-    }
+    std::string tostring() const;
 
     std::string tohex() const
     {
@@ -119,22 +110,18 @@ union float_bf16
     static constexpr UNSIGNED_TYPE EXPONENT_BITS = 8;
     static constexpr UNSIGNED_TYPE MANTISSA_BITS = 7;
 
+    static constexpr UNSIGNED_TYPE EXPONENT_MASK = ( ( UNSIGNED_TYPE( 1 ) << EXPONENT_BITS ) - 1 );
+    static constexpr UNSIGNED_TYPE EXPONENT_BIAS = ( ( UNSIGNED_TYPE( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+
     UNSIGNED_TYPE u;
 
 #if defined HAVE_CUDA
     __nv_bfloat16 s;
 #endif
 
-    std::string tostring() const
-    {
-#if defined HAVE_CUDA
-        float output = __bfloat162float( s );
+    void fromFloat( float tf );
 
-        return std::format( "{}", output );
-#else
-        return "<cvt-unsupported>";
-#endif
-    }
+    std::string tostring() const;
 
     std::string tohex() const
     {
@@ -160,22 +147,18 @@ union float_fp16
     static constexpr UNSIGNED_TYPE EXPONENT_BITS = 5;
     static constexpr UNSIGNED_TYPE MANTISSA_BITS = 10;
 
+    static constexpr UNSIGNED_TYPE EXPONENT_MASK = ( ( UNSIGNED_TYPE( 1 ) << EXPONENT_BITS ) - 1 );
+    static constexpr UNSIGNED_TYPE EXPONENT_BIAS = ( ( UNSIGNED_TYPE( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+
     UNSIGNED_TYPE u;
 
 #if defined HAVE_CUDA
     __half s;
 #endif
 
-    std::string tostring() const
-    {
-#if defined HAVE_CUDA
-        float output = __half2float( s );
+    void fromFloat( float tf );
 
-        return std::format( "{}", output );
-#else
-        return "<cvt-unsupported>";
-#endif
-    }
+    std::string tostring() const;
 
     std::string tohex() const
     {
@@ -200,6 +183,9 @@ union float_ieee32
 
     static constexpr UNSIGNED_TYPE EXPONENT_BITS = 8;
     static constexpr UNSIGNED_TYPE MANTISSA_BITS = 23;
+
+    static constexpr UNSIGNED_TYPE EXPONENT_MASK = ( ( UNSIGNED_TYPE( 1 ) << EXPONENT_BITS ) - 1 );
+    static constexpr UNSIGNED_TYPE EXPONENT_BIAS = ( ( UNSIGNED_TYPE( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
 
     UNSIGNED_TYPE u;
 
@@ -234,6 +220,9 @@ union float_ieee64
     static constexpr UNSIGNED_TYPE EXPONENT_BITS = 11;
     static constexpr UNSIGNED_TYPE MANTISSA_BITS = 52;
 
+    static constexpr UNSIGNED_TYPE EXPONENT_MASK = ( ( UNSIGNED_TYPE( 1 ) << EXPONENT_BITS ) - 1 );
+    static constexpr UNSIGNED_TYPE EXPONENT_BIAS = ( ( UNSIGNED_TYPE( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+
     UNSIGNED_TYPE u;
     double s;
 
@@ -259,33 +248,205 @@ union float_ieee64
 };
 
 template <class T>
-void print_float_representation( T f )
+void extract_float_representation( T f, typename T::UNSIGNED_TYPE& sign, typename T::SIGNED_TYPE& exponent,
+                                   typename T::UNSIGNED_TYPE& mantissa )
 {
-    static constexpr typename T::UNSIGNED_TYPE EXPONENT_MASK =
-        ( ( typename T::UNSIGNED_TYPE( 1 ) << T::EXPONENT_BITS ) - 1 );
-    static constexpr
-        typename T::UNSIGNED_TYPE EXPONENT_BIAS( ( typename T::UNSIGNED_TYPE( 1 ) << ( T::EXPONENT_BITS - 1 ) ) - 1 );
+    mantissa = f.u & ( ( typename T::UNSIGNED_TYPE( 1 ) << T::MANTISSA_BITS ) - 1 );
+    typename T::UNSIGNED_TYPE exponent_with_bias = ( f.u >> T::MANTISSA_BITS ) & T::EXPONENT_MASK;
 
-    std::bitset<8 * sizeof( T )> b = f.u;
-    std::string bs = b.to_string();
-    typename T::UNSIGNED_TYPE mantissa = f.u & ( ( typename T::UNSIGNED_TYPE( 1 ) << T::MANTISSA_BITS ) - 1 );
-    typename T::UNSIGNED_TYPE exponent_with_bias = ( f.u >> T::MANTISSA_BITS ) & EXPONENT_MASK;
-    typename T::SIGNED_TYPE exponent;
-
-    if ( exponent_with_bias && exponent_with_bias != EXPONENT_MASK )
+    if ( exponent_with_bias && exponent_with_bias != T::EXPONENT_MASK )
     {
-        exponent = (typename T::SIGNED_TYPE)exponent_with_bias - EXPONENT_BIAS;    // Normal
+        exponent = (typename T::SIGNED_TYPE)exponent_with_bias - T::EXPONENT_BIAS;    // Normal
     }
     else if ( exponent_with_bias == 0 && mantissa != 0 )
     {
-        exponent = -( EXPONENT_BIAS - 1 );    // Denormal
+        exponent = -( T::EXPONENT_BIAS - 1 );    // Denormal
     }
     else
     {
         exponent = 0;    // Zero
     }
 
-    typename T::UNSIGNED_TYPE sign = f.u >> ( T::EXPONENT_BITS + T::MANTISSA_BITS );
+    sign = f.u >> ( T::EXPONENT_BITS + T::MANTISSA_BITS );
+}
+
+template <class T>
+float toFloat( T fu )
+{
+    float_ieee32 r;
+    r.u = 0;
+
+    using U = typename T::UNSIGNED_TYPE;
+    using S = typename T::SIGNED_TYPE;
+    using U32 = float_ieee32::UNSIGNED_TYPE;
+
+    U s;
+    S e;
+    U m;
+
+    extract_float_representation<T>( fu, s, e, m );
+
+    U32 fsign = s;
+    U32 fsignShift = float_ieee32::EXPONENT_BITS + float_ieee32::MANTISSA_BITS;
+    fsign <<= fsignShift;
+
+    // handle \pm 0: don't set exponent bits:
+    U signTshift = T::EXPONENT_BITS + T::MANTISSA_BITS;
+    U signT = U(s) << signTshift;
+    U notSignTmask = (U(1) << signTshift) - 1;
+    U exponentMaskT = T::EXPONENT_MASK << T::MANTISSA_BITS;
+
+    bool noExponent{};
+
+    // inf: all exponent bits set, mantissa clear.
+    // nan: all exponent bits set, and at least one mantissa bits set.
+    // \pm 0: just sign bit set.
+    if ( signT == fu.u ) {
+        // don't set the exponent bits.
+        noExponent = true;
+    } else if ( (fu.u & exponentMaskT) == exponentMaskT ) {
+        // \pm \infty, NaN
+        U32 notSignFmask = (U32(1) << fsignShift) - 1;
+
+        r.u |= (float_ieee32::EXPONENT_MASK << float_ieee32::MANTISSA_BITS);
+        noExponent = true;
+    } else if ( (fu.u & exponentMaskT) == 0 ) {
+        // denormalized mantissa.  No implied leading one
+        U leading = std::countl_zero(m);
+        U shift = 1 + leading - 8 * sizeof(U) + T::MANTISSA_BITS;
+        m <<= shift;
+        e -= shift;
+
+        U mmask = ((U(1) << T::MANTISSA_BITS) - 1);
+        m &= mmask;
+    }
+
+    if ( !noExponent ) {
+        U32 fexponent = e;
+        fexponent += float_ieee32::EXPONENT_BIAS;
+        fexponent <<= float_ieee32::MANTISSA_BITS;
+
+        r.u |= fexponent;
+    }
+
+    U32 fmantissa = m;
+    fmantissa <<= ( float_ieee32::MANTISSA_BITS - T::MANTISSA_BITS);
+
+    r.u |= fsign | fmantissa;
+
+    return r.s;
+}
+
+// FIXME: Doesn't handle out of bounds... assumed valid.
+template <class T>
+typename T::UNSIGNED_TYPE fromFloatHelper( float tf )
+{
+    float_ieee32 f;
+    f.s = tf;
+
+    float_ieee32::UNSIGNED_TYPE s;
+    float_ieee32::SIGNED_TYPE e;
+    float_ieee32::UNSIGNED_TYPE m;
+
+    extract_float_representation<float_ieee32>( f, s, e, m );
+
+    float_ieee32::UNSIGNED_TYPE signbit32 = s << (float_ieee32::EXPONENT_BITS + float_ieee32::MANTISSA_BITS);
+
+    T r;
+    r.u = s << (T::EXPONENT_BITS + T::MANTISSA_BITS);
+
+    // +- zero: don't set any exponent bits:
+    if ( f.u == signbit32 ) {
+       return r.u;
+    }
+
+    e += T::EXPONENT_BIAS;
+    r.u |= ( e << T::MANTISSA_BITS );
+    m >>= ( float_ieee32::MANTISSA_BITS - T::MANTISSA_BITS );
+    r.u |= m;
+
+    return r.u;
+}
+
+void float_e4m3::fromFloat( float tf )
+{
+    u = fromFloatHelper<float_e4m3>( tf );
+}
+
+void float_e5m2::fromFloat( float tf )
+{
+    u = fromFloatHelper<float_e5m2>( tf );
+}
+
+void float_bf16::fromFloat( float tf )
+{
+    u = fromFloatHelper<float_bf16>( tf );
+}
+
+void float_fp16::fromFloat( float tf )
+{
+    u = fromFloatHelper<float_fp16>( tf );
+}
+
+std::string float_e4m3::tostring() const
+{
+#if defined HAVE_CUDA
+    __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E4M3 );
+    float output = __half2float( half );
+#else
+    float output = toFloat<float_e4m3>( *this );
+#endif
+
+    return std::format( "{}", output );
+}
+
+std::string float_e5m2::tostring() const
+{
+#if defined HAVE_CUDA
+    __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E5M2 );
+    float output = __half2float( half );
+#else
+    float output = toFloat<float_e5m2>( *this );
+#endif
+
+    return std::format( "{}", output );
+}
+
+std::string float_bf16::tostring() const
+{
+#if defined HAVE_CUDA
+    float output = __bfloat162float( s );
+#else
+    float output = toFloat<float_bf16>( *this );
+#endif
+
+    return std::format( "{}", output );
+}
+
+std::string float_fp16::tostring() const
+{
+#if defined HAVE_CUDA
+    float output = __half2float( s );
+#else
+    float output = toFloat<float_fp16>( *this );
+#endif
+
+    return std::format( "{}", output );
+}
+
+template <class T>
+void print_float_representation( T f, std::string ty )
+{
+    std::cout << std::format( "type: {}\n", ty );
+
+    std::bitset<8 * sizeof( T )> b = f.u;
+    std::string bs = b.to_string();
+    typename T::UNSIGNED_TYPE exponent_with_bias = ( f.u >> T::MANTISSA_BITS ) & T::EXPONENT_MASK;
+    typename T::UNSIGNED_TYPE sign;
+    typename T::SIGNED_TYPE exponent;
+    typename T::UNSIGNED_TYPE mantissa;
+
+    extract_float_representation<T>( f, sign, exponent, mantissa );
 
     auto mstring = bs.substr( 1 + T::EXPONENT_BITS, T::MANTISSA_BITS );
     auto estring = bs.substr( 1, T::EXPONENT_BITS );
@@ -293,7 +454,7 @@ void print_float_representation( T f )
     std::string fs = f.tostring();
     std::string es = f.espace();
 
-    if ( exponent_with_bias == EXPONENT_MASK )
+    if ( exponent_with_bias == T::EXPONENT_MASK )
     {
         std::cout << std::format(
             "value:    {}\n"
@@ -313,11 +474,11 @@ void print_float_representation( T f )
             "sign:     {}\n"
             "exponent:  {}                        {}({}{}{}{})\n"
             "mantissa:      {}{}\n",
-            fs, f.tohex(), b.to_string(), sign, estring, f.espace2(), exponent_with_bias ? EXPONENT_BIAS : 0,
+            fs, f.tohex(), b.to_string(), sign, estring, f.espace2(), exponent_with_bias ? T::EXPONENT_BIAS : 0,
             exponent_with_bias ? " " : "", exponent >= 0 ? "+" : "", exponent, es, mstring );
     }
 
-    if ( exponent_with_bias == EXPONENT_MASK )
+    if ( exponent_with_bias == T::EXPONENT_MASK )
     {
         if ( mantissa == 0 )
         {
@@ -332,7 +493,7 @@ void print_float_representation( T f )
     {
         // Denormal: exponent is -126, no implicit leading 1
         std::cout << std::format( "number:     {}{}0.{} x 2^({})\n\n", es, ( sign ? "-" : " " ), mstring,
-                                  -( EXPONENT_BIAS - 1 ) );
+                                  -( T::EXPONENT_BIAS - 1 ) );
     }
     else
     {
@@ -343,22 +504,22 @@ void print_float_representation( T f )
 
 void print_float_e4m3_representation( float_e4m3 f )
 {
-    print_float_representation<float_e4m3>( f );
+    print_float_representation<float_e4m3>( f, "e4m3" );
 }
 
 void print_float_e5m2_representation( float_e5m2 f )
 {
-    print_float_representation<float_e5m2>( f );
+    print_float_representation<float_e5m2>( f, "e5m2" );
 }
 
 void print_float_bf16_representation( float_bf16 f )
 {
-    print_float_representation<float_bf16>( f );
+    print_float_representation<float_bf16>( f, "bf16" );
 }
 
 void print_float_fp16_representation( float_fp16 f )
 {
-    print_float_representation<float_fp16>( f );
+    print_float_representation<float_fp16>( f, "fp16" );
 }
 
 using float32 = float;
@@ -369,7 +530,7 @@ void print_float32_representation( float32 f )
     float_ieee32 x;
     x.s = f;
 
-    print_float_representation<float_ieee32>( x );
+    print_float_representation<float_ieee32>( x, "float" );
 }
 
 using float64 = double;
@@ -382,7 +543,7 @@ void print_float64_representation( float64 f )
     float_ieee64 x;
     x.s = f;
 
-    print_float_representation<float_ieee64>( x );
+    print_float_representation<float_ieee64>( x, "double" );
 }
 
 enum class option_values : int
@@ -459,8 +620,10 @@ using float128 = __float128;
 // Exponent bias: (2^(15-1) - 1) = 16383
 #define FLOAT80_EXPONENT_BIAS ( ( std::uint64_t( 1 ) << ( FLOAT80_EXPONENT_BITS - 1 ) ) - 1 )
 
-void print_float80_representation( float80 f )
+void print_float80_representation( float80 f, std::string ty )
 {
+    std::cout << std::format( "type: {}\n", ty );
+
     static_assert( sizeof( f ) == sizeof( __uint128_t ) );
     // #if defined __HAVE_FLOAT80
     //     static_assert( std::numeric_limits<float80>::is_iec559, "IEEE 754 required" );
@@ -575,8 +738,10 @@ std::string float128_tostring( float128 f )
     return buffer;
 }
 
-void print_float128_representation( float128 f )
+void print_float128_representation( float128 f, std::string ty )
 {
+    std::cout << std::format( "type: {}\n", ty );
+
     static_assert( sizeof( f ) == sizeof( __uint128_t ) );
 #if defined LONG_DOUBLE_IS_FLOAT128
     static_assert( std::numeric_limits<float128>::is_iec559, "IEEE 754 required" );
@@ -751,7 +916,8 @@ void printHelpAndExit()
                  "Examples:\n"
                  "floatexplorer 1 -2 6 1.5 0.125 -inf # --float is the default\n"
                  "floatexplorer --double 1 -2 6 1.5 0.125 -inf\n"
-                 "floatexplorer --float --double 1 # both representations\n";
+                 "floatexplorer --float --double 1 # both representations\n"
+                 "floatexplorer --e5m2 --e4m3 --bf16 --fp16 -- -3\n";
 
     std::exit( 0 );
 }
@@ -835,16 +1001,22 @@ int main( int argc, char** argv )
 
     if ( specialcases )
     {
-#if defined HAVE_CUDA
         if ( dofloat_e4m3 )
         {
-            float_e4m3 tests[] = {
-                { .u = 0x00 },                                                             // +0
-                { .u = 0x80 },                                                             // -0
-                { .u = 0x7F },                                                             // NaN
-                { .s = __nv_cvt_float_to_fp8( 0.015625f, __NV_SATFINITE, __NV_E4M3 ) },    // Smallest normal ~2^-6
-                { .s = __nv_cvt_float_to_fp8( 448.0f, __NV_SATFINITE, __NV_E4M3 ) },       // Largest normal
-            };
+            float_e4m3 smallest_normal;
+            float_e4m3 largest_normal;
+#if defined HAVE_CUDA
+            smallest_normal.s = __nv_cvt_float_to_fp8( 0.015625f, __NV_SATFINITE, __NV_E4M3 );
+            largest_normal.s = __nv_cvt_float_to_fp8( 448.0f, __NV_SATFINITE, __NV_E4M3 );
+#else
+            smallest_normal.u = 0x08;
+            largest_normal.u = 0x7E;
+#endif
+            float_e4m3 tests[] = { { .u = 0x00 },    // +0
+                                   { .u = 0x80 },    // -0
+                                   { .u = 0x7F },    // NaN
+                                   { .u = smallest_normal.u },
+                                   { .u = largest_normal.u } };
             for ( auto test : tests )
             {
                 std::cout << "\nTest value: " << test.tostring() << "\n";
@@ -861,14 +1033,23 @@ int main( int argc, char** argv )
 
         if ( dofloat_e5m2 )
         {
+            float_e5m2 smallest_normal;
+            float_e5m2 largest_normal;
+#if defined HAVE_CUDA
+            smallest_normal.s = __nv_cvt_float_to_fp8( 0.00006103515625f, __NV_SATFINITE, __NV_E5M2 );
+            largest_normal.s = __nv_cvt_float_to_fp8( 57344.0f, __NV_SATFINITE, __NV_E5M2 );
+#else
+            smallest_normal.u = 0x04;
+            largest_normal.u = 0x7B;
+#endif
             float_e5m2 tests[] = {
-                { .u = 0x00 },                                                                     // +0
-                { .u = 0x80 },                                                                     // -0
-                { .u = 0x7C },                                                                     // +Infinity
-                { .u = 0xFC },                                                                     // -Infinity
-                { .u = 0x7F },                                                                     // NaN
-                { .s = __nv_cvt_float_to_fp8( 0.00006103515625f, __NV_SATFINITE, __NV_E5M2 ) },    // Smallest normal
-                { .s = __nv_cvt_float_to_fp8( 57344.0f, __NV_SATFINITE, __NV_E5M2 ) },             // Largest normal
+                { .u = 0x00 },                 // +0
+                { .u = 0x80 },                 // -0
+                { .u = 0x7C },                 // +Infinity
+                { .u = 0xFC },                 // -Infinity
+                { .u = 0x7F },                 // NaN
+                { .u = smallest_normal.u },    // Smallest normal
+                { .u = largest_normal.u },     // Largest normal
             };
             for ( auto test : tests )
             {
@@ -886,14 +1067,23 @@ int main( int argc, char** argv )
 
         if ( dofloat_bf16 )
         {
+            float_bf16 smallest_normal;
+            float_bf16 largest_normal;
+#if defined HAVE_CUDA
+            smallest_normal.s = __float2bfloat16( 1.17549435e-38f );
+            largest_normal.s = __float2bfloat16( 3.4e38f );
+#else
+            smallest_normal.u = 0x0080;
+            largest_normal.u = 0x7F80;
+#endif
             float_bf16 tests[] = {
-                { .u = 0x0000 },                                 // +0
-                { .u = 0x8000 },                                 // -0
-                { .u = 0x7F80 },                                 // +Infinity
-                { .u = 0xFF80 },                                 // -Infinity
-                { .u = 0x7FC0 },                                 // NaN
-                { .s = __float2bfloat16( 1.17549435e-38f ) },    // Smallest normal
-                { .s = __float2bfloat16( 3.4e38f ) },            // Largest normal
+                { .u = 0x0000 },               // +0
+                { .u = 0x8000 },               // -0
+                { .u = 0x7F80 },               // +Infinity
+                { .u = 0xFF80 },               // -Infinity
+                { .u = 0x7FC0 },               // NaN
+                { .u = smallest_normal.u },    // Smallest normal
+                { .u = largest_normal.u },     // Largest normal
             };
             for ( auto test : tests )
             {
@@ -911,14 +1101,23 @@ int main( int argc, char** argv )
 
         if ( dofloat_fp16 )
         {
+            float_fp16 smallest_normal;
+            float_fp16 largest_normal;
+#if defined HAVE_CUDA
+            smallest_normal.s = __float2half( 0.00006103515625f );
+            largest_normal.s = __float2half( 65504.0f );
+#else
+            smallest_normal.u = 0x0400;
+            largest_normal.u = 0x7BFF;
+#endif
             float_fp16 tests[] = {
-                { .u = 0x0000 },                               // +0
-                { .u = 0x8000 },                               // -0
-                { .u = 0x7C00 },                               // +Infinity
-                { .u = 0xFC00 },                               // -Infinity
-                { .u = 0x7E00 },                               // NaN
-                { .s = __float2half( 0.00006103515625f ) },    // Smallest normal
-                { .s = __float2half( 65504.0f ) },             // Largest normal
+                { .u = 0x0000 },               // +0
+                { .u = 0x8000 },               // -0
+                { .u = 0x7C00 },               // +Infinity
+                { .u = 0xFC00 },               // -Infinity
+                { .u = 0x7E00 },               // NaN
+                { .u = smallest_normal.u },    // Smallest normal
+                { .u = largest_normal.u },     // Largest normal
             };
             for ( auto test : tests )
             {
@@ -933,7 +1132,6 @@ int main( int argc, char** argv )
             f.u = 0x03FF;    // 2^-14 * 0.99951171875
             print_float_fp16_representation( f );
         }
-#endif
 
         if ( dofloat32 )
         {
@@ -999,19 +1197,19 @@ int main( int argc, char** argv )
             for ( auto test : tests )
             {
                 std::cout << "\nTest value: " << test << "\n";
-                print_float80_representation( test );
+                print_float80_representation( test, "long double" );
             }
             float80 f;
             std::cout << "\nSmallest denormal:\n";
             __uint128_t denormal_bits = 0x00000001;
             std::memset( &f, 0, sizeof( f ) );
             std::memcpy( &f, &denormal_bits, 10 );
-            print_float80_representation( f );
+            print_float80_representation( f, "long double" );
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( __uint128_t( 1 ) << FLOAT80_MANTISSA_BITS ) - 1;
             std::memset( &f, 0, sizeof( f ) );
             std::memcpy( &f, &denormal_bits, 10 );
-            print_float80_representation( f );
+            print_float80_representation( f, "long double" );
         }
 #endif
 
@@ -1037,17 +1235,17 @@ int main( int argc, char** argv )
             for ( auto test : tests )
             {
                 std::cout << std::format( "\nTest value: {}\n", float128_tostring( test ) );
-                print_float128_representation( test );
+                print_float128_representation( test, "float128" );
             }
             float128 f;
             std::cout << "\nSmallest denormal:\n";
             __uint128_t denormal_bits = 0x00000001;
             std::memcpy( &f, &denormal_bits, sizeof( float128 ) );
-            print_float128_representation( f );
+            print_float128_representation( f, "float128" );
             std::cout << "\nLargest denormal:\n";
             denormal_bits = ( static_cast<__uint128_t>( 1 ) << 112 ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( float128 ) );
-            print_float128_representation( f );
+            print_float128_representation( f, "float128" );
         }
 #endif
     }
@@ -1080,12 +1278,12 @@ int main( int argc, char** argv )
                     }
                     else
                     {
-#if defined HAVE_CUDA
                         float tf = std::stof( argv[i] );
+#if defined HAVE_CUDA
                         __nv_bfloat16 bf16 = __float2bfloat16( tf );
                         f.s = bf16;
 #else
-                        throw std::runtime_error( "Conversion from float to bf16 is unsupported." );
+                        f.fromFloat( tf );
 #endif
                     }
                     print_float_bf16_representation( f );
@@ -1110,12 +1308,12 @@ int main( int argc, char** argv )
                     }
                     else
                     {
-#if defined HAVE_CUDA
                         float tf = std::stof( argv[i] );
+#if defined HAVE_CUDA
                         __half fp16 = __float2half( tf );
                         f.s = fp16;
 #else
-                        throw std::runtime_error( "Conversion from float to fp16 is unsupported." );
+                        f.fromFloat( tf );
 #endif
                     }
                     print_float_fp16_representation( f );
@@ -1140,12 +1338,12 @@ int main( int argc, char** argv )
                     }
                     else
                     {
-#if defined HAVE_CUDA
                         float tf = std::stof( argv[i] );
+#if defined HAVE_CUDA
                         __nv_fp8_storage_t fp8 = __nv_cvt_float_to_fp8( tf, __NV_SATFINITE, __NV_E4M3 );
                         f.s = fp8;
 #else
-                        throw std::runtime_error( "Conversion from float to e4m3 is unsupported." );
+                        f.fromFloat( tf );
 #endif
                     }
                     print_float_e4m3_representation( f );
@@ -1170,12 +1368,12 @@ int main( int argc, char** argv )
                     }
                     else
                     {
-#if defined HAVE_CUDA
                         float tf = std::stof( argv[i] );
+#if defined HAVE_CUDA
                         __nv_fp8_storage_t fp8 = __nv_cvt_float_to_fp8( tf, __NV_SATFINITE, __NV_E5M2 );
                         f.s = fp8;
 #else
-                        throw std::runtime_error( "Conversion from float to e5m2 is unsupported." );
+                        f.fromFloat( tf );
 #endif
                     }
                     print_float_e5m2_representation( f );
@@ -1236,7 +1434,7 @@ int main( int argc, char** argv )
                     {
                         f = std::stold( argv[i] );
                     }
-                    print_float80_representation( f );
+                    print_float80_representation( f, "long double" );
                 }
 #endif
 
@@ -1253,7 +1451,7 @@ int main( int argc, char** argv )
                     {
                         f = std::stold( argv[i] );
                     }
-                    print_float128_representation( f );
+                    print_float128_representation( f, "float128" );
                 }
 #endif
             }

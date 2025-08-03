@@ -1,3 +1,4 @@
+type: e5m2
 value:    3
 hex:      42
 bits:     01000010

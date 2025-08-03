@@ -1,5 +1,6 @@
 
 Test value: 0
+type: float
 value:    0
 hex:      00000000
 bits:     00000000000000000000000000000000
@@ -10,6 +11,7 @@ number:          0.00000000000000000000000 x 2^(0)
 
 
 Test value: inf
+type: float
 value:    inf
 hex:      7F800000
 bits:     01111111100000000000000000000000
@@ -20,6 +22,7 @@ number:    +inf
 
 
 Test value: -inf
+type: float
 value:    -inf
 hex:      FF800000
 bits:     11111111100000000000000000000000
@@ -30,6 +33,7 @@ number:    -inf
 
 
 Test value: nan
+type: float
 value:    nan
 hex:      7FC00000
 bits:     01111111110000000000000000000000
@@ -40,6 +44,7 @@ number:  NaN
 
 
 Test value: 1.17549e-38
+type: float
 value:    1.1754944e-38
 hex:      00800000
 bits:     00000000100000000000000000000000
@@ -50,6 +55,7 @@ number:          1.00000000000000000000000 x 2^(-126)
 
 
 Test value: 3.40282e+38
+type: float
 value:    3.4028235e+38
 hex:      7F7FFFFF
 bits:     01111111011111111111111111111111
@@ -60,6 +66,7 @@ number:          1.11111111111111111111111 x 2^(127)
 
 
 Smallest denormal:
+type: float
 value:    1e-45
 hex:      00000001
 bits:     00000000000000000000000000000001
@@ -70,6 +77,7 @@ number:          0.00000000000000000000001 x 2^(4294967170)
 
 
 Largest denormal:
+type: float
 value:    1.1754942e-38
 hex:      007FFFFF
 bits:     00000000011111111111111111111111

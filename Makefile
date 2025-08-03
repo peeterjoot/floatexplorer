@@ -49,18 +49,16 @@ clean:
 	rm -rf *.dSYM
 
 test:
-ifneq ($(NVCC_EXISTS),)
-	./floatexplorer --e4m3 3 | diff -up expected/e4m3.txt -
-	./floatexplorer --e5m2 3 | diff -up expected/e5m2.txt -
-	./floatexplorer --spe --e4m3 | diff -up expected/e4m3.special.txt -
-	./floatexplorer --spe --e5m2 | diff -up expected/e5m2.special.txt -
-	./floatexplorer --spe --fp16 | diff -up expected/fp16.special.txt -
-	./floatexplorer --spe --bf16 | diff -up expected/bf16.special.txt -
-endif
-	./floatexplorer --spe | diff -up expected/float.special.txt -
-	./floatexplorer --spe --double | diff -up expected/double.special.txt -
+	./floatexplorer --e4m3 3 | diff -pU20 expected/e4m3.txt -
+	./floatexplorer --e5m2 3 | diff -pU20 expected/e5m2.txt -
+	./floatexplorer --spe --e4m3 | diff -pU20 expected/e4m3.special.txt -
+	./floatexplorer --spe --e5m2 | diff -pU20 expected/e5m2.special.txt -
+	./floatexplorer --spe --fp16 | diff -pU20 expected/fp16.special.txt -
+	./floatexplorer --spe --bf16 | diff -pU20 expected/bf16.special.txt -
+	./floatexplorer --spe | diff -pU20 expected/float.special.txt -
+	./floatexplorer --spe --double | diff -pU20 expected/double.special.txt -
 #ifneq ($(OS),Darwin)
-#	./floatexplorer --spe --f128 | diff -up - expected/f128.special.txt
+#	./floatexplorer --spe --f128 | diff -pU20 - expected/f128.special.txt
 #endif
 
 # vim: noet ts=8 sw=8

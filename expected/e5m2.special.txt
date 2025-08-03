@@ -1,5 +1,6 @@
 
 Test value: 0
+type: e5m2
 value:    0
 hex:      00
 bits:     00000000
@@ -10,6 +11,7 @@ number:       0.00 x 2^(0)
 
 
 Test value: -0
+type: e5m2
 value:    -0
 hex:      80
 bits:     10000000
@@ -20,6 +22,7 @@ number:      -1.00 x 2^(0)
 
 
 Test value: inf
+type: e5m2
 value:    inf
 hex:      7C
 bits:     01111100
@@ -30,6 +33,7 @@ number:    +inf
 
 
 Test value: -inf
+type: e5m2
 value:    -inf
 hex:      FC
 bits:     11111100
@@ -40,6 +44,7 @@ number:    -inf
 
 
 Test value: nan
+type: e5m2
 value:    nan
 hex:      7F
 bits:     01111111
@@ -50,6 +55,7 @@ number:  NaN
 
 
 Test value: 6.1035156e-05
+type: e5m2
 value:    6.1035156e-05
 hex:      04
 bits:     00000100
@@ -60,6 +66,7 @@ number:       1.00 x 2^(-14)
 
 
 Test value: 57344
+type: e5m2
 value:    57344
 hex:      7B
 bits:     01111011
@@ -70,6 +77,7 @@ number:       1.11 x 2^(15)
 
 
 Smallest denormal:
+type: e5m2
 value:    1.5258789e-05
 hex:      01
 bits:     00000001
@@ -80,6 +88,7 @@ number:       0.01 x 2^(-14)
 
 
 Largest denormal:
+type: e5m2
 value:    4.5776367e-05
 hex:      03
 bits:     00000011
