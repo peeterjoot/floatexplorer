@@ -2,19 +2,19 @@
 
 This is a little bit of code to dump the representation of some floating point types, including:
 
-- e5m2 format,
-- e4m3 format,
+- e5m2,
+- e4m3,
+- fp16
+- bf16
 - 32-bit (C float), 
-- 64-bit (C double),
-- 128-bit (Linux ARM long double, GCC libquadmath)
+- 64-bit (C double, and long double on some platforms),
 - 80-bit Intel long double (unlike the above, this one doesn't use the IEEE representation, and has an explicit leading mantissa bit.)
-
-fp16, bf16: TODO.
+- 128-bit (Linux ARM long double, GCC libquadmath)
 
 ## TODO
 
-- Implement fp16 and bf16.
-- HIP variants for the conversions?
+- See if the HIP API can also do the conversion that I currently only support using the CUDA API.
+- Didn't implement any special values for the GPU types (e5m2, e4m3, fp16, bf16)
 
 ## Discussion
 

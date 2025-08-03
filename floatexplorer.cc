@@ -351,6 +351,16 @@ void print_float_e5m2_representation( float_e5m2 f )
     print_float_representation<float_e5m2>( f );
 }
 
+void print_float_bf16_representation( float_bf16 f )
+{
+    print_float_representation<float_bf16>( f );
+}
+
+void print_float_fp16_representation( float_fp16 f )
+{
+    print_float_representation<float_fp16>( f );
+}
+
 using float32 = float;
 
 void print_float32_representation( float32 f )
@@ -379,6 +389,8 @@ enum class option_values : int
 {
     e5m2_ = '2',
     e4m3_ = '3',
+    fp16_ = 'f',
+    bf16_ = 'b',
     float_ = '4',
     float32_ = '4',
     float64_ = '8',
@@ -749,6 +761,8 @@ int main( int argc, char** argv )
     int c;
     bool dofloat_e5m2{};
     bool dofloat_e4m3{};
+    bool dofloat_bf16{};
+    bool dofloat_fp16{};
     bool dofloat32{};
     bool dofloat64{};
     bool dofloat80{};
@@ -758,6 +772,8 @@ int main( int argc, char** argv )
         { "help", 0, NULL, (int)option_values::help_ },
         { "e5m2", 0, NULL, (int)option_values::e5m2_ },
         { "e4m3", 0, NULL, (int)option_values::e4m3_ },
+        { "bf16", 0, NULL, (int)option_values::bf16_ },
+        { "fp16", 0, NULL, (int)option_values::fp16_ },
         { "float", 0, NULL, (int)option_values::float_ },
         { "double", 0, NULL, (int)option_values::float64_ },
         { "f32", 0, NULL, (int)option_values::float32_ },
@@ -765,7 +781,7 @@ int main( int argc, char** argv )
         FLOAT80_OPTIONS FLOAT128_OPTIONS LONGDOUBLE_OPTIONS{ "special", 0, NULL, (int)option_values::special_ },
         { NULL, 0, NULL, 0 } };
 
-    while ( -1 != ( c = getopt_long( argc, argv, "hfds", long_options, NULL ) ) )
+    while ( -1 != ( c = getopt_long( argc, argv, "h", long_options, NULL ) ) )
     {
         switch ( option_values( c ) )
         {
@@ -777,6 +793,16 @@ int main( int argc, char** argv )
             case option_values::e4m3_:
             {
                 dofloat_e4m3 = true;
+                break;
+            }
+            case option_values::bf16_:
+            {
+                dofloat_bf16 = true;
+                break;
+            }
+            case option_values::fp16_:
+            {
+                dofloat_fp16 = true;
                 break;
             }
             case option_values::float_:
@@ -821,7 +847,7 @@ int main( int argc, char** argv )
         }
     }
 
-    if ( !dofloat_e4m3 && !dofloat_e5m2 && !dofloat32 && !dofloat64 && !dofloat80 && !dofloat128 )
+    if ( !dofloat_e4m3 && !dofloat_e5m2 && !dofloat_bf16 && !dofloat_fp16 && !dofloat32 && !dofloat64 && !dofloat80 && !dofloat128 )
     {
         dofloat32 = true;
     }
@@ -970,6 +996,70 @@ int main( int argc, char** argv )
     {
         try
         {
+            if ( dofloat_bf16 )
+            {
+                float_bf16 f;
+                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                {
+                    unsigned long t;
+                    t = std::stoul( argv[i], nullptr, 16 );
+                    if ( t <= UINT16_MAX )
+                    {
+                        f.u = t;
+                    }
+                    else
+                    {
+                        std::cerr << std::format( "Hex Input {} exceeds UINT16_MAX, incompatible with --bf16.\n", t );
+
+                        throw std::runtime_error( "Bad input." );
+                    }
+                }
+                else
+                {
+#if defined HAVE_CUDA
+                    float tf = std::stof( argv[i] );
+                    __nv_bfloat16 bf16 = __float2bfloat16( tf );
+                    f.s = bf16;
+#else
+                    throw std::runtime_error( "Conversion from float to bf16 is unsupported." );
+#endif
+                }
+
+                print_float_bf16_representation( f );
+            }
+
+            if ( dofloat_fp16 )
+            {
+                float_fp16 f;
+                if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                {
+                    unsigned long t;
+                    t = std::stoul( argv[i], nullptr, 16 );
+                    if ( t <= UINT16_MAX )
+                    {
+                        f.u = t;
+                    }
+                    else
+                    {
+                        std::cerr << std::format( "Hex Input {} exceeds UINT16_MAX, incompatible with --fp16.\n", t );
+
+                        throw std::runtime_error( "Bad input." );
+                    }
+                }
+                else
+                {
+#if defined HAVE_CUDA
+                    float tf = std::stof( argv[i] );
+                    __half fp16 = __float2half( tf );
+                    f.s = fp16;
+#else
+                    throw std::runtime_error( "Conversion from float to fp16 is unsupported." );
+#endif
+                }
+
+                print_float_fp16_representation( f );
+            }
+
             if ( dofloat_e4m3 )
             {
                 float_e4m3 f;
