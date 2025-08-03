@@ -47,7 +47,8 @@ union float_e4m3
 
     void fromFloat( float tf );
 
-    std::string tostring() const
+    std::string tostring() const;
+    std::string float_e4m3::tostring() const
     {
 #if defined HAVE_CUDA
         __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E4M3 );
@@ -94,7 +95,8 @@ union float_e5m2
 
     void fromFloat( float tf );
 
-    std::string tostring() const
+    std::string tostring() const;
+    std::string float_e5m2::tostring() const
     {
 #if defined HAVE_CUDA
         __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E5M2 );
@@ -141,7 +143,8 @@ union float_bf16
 
     void fromFloat( float tf );
 
-    std::string tostring() const
+    std::string tostring() const;
+    std::string float_bf16::tostring() const
     {
 #if defined HAVE_CUDA
         float output = __bfloat162float( s );
@@ -187,7 +190,8 @@ union float_fp16
 
     void fromFloat( float tf );
 
-    std::string tostring() const
+    std::string tostring() const;
+    std::string float_fp16::tostring() const
     {
 #if defined HAVE_CUDA
         float output = __half2float( s );
@@ -307,6 +311,27 @@ void extract_float_representation( T f, typename T::UNSIGNED_TYPE & sign, typena
     sign = f.u >> ( T::EXPONENT_BITS + T::MANTISSA_BITS );
 }
 
+template <class T>
+float toFloat( T fu ) {
+    float_ieee32 f;
+
+    typename T::UNSIGNED_TYPE s;
+    typename T::SIGNED_TYPE e;
+    typename T::UNSIGNED_TYPE m;
+
+    extract_float_representation<T>( f, s, e, m );
+
+    float_ieee32 r;
+    r.u = s << (float_ieee32::EXPONENT_BITS + float_ieee32::MANTISSA_BITS);
+    e += float_ieee32::EXPONENT_BIAS;
+    r.u |= (e << float_ieee32::MANTISSA_BITS);
+    m <<= (float_ieee32::MANTISSA_BITS - T::MANTISSA_BITS);
+    r.u |= m;
+
+    return r.s;
+}
+
+
 // FIXME: Doesn't handle out of bounds... assumed valid.
 template <class T>
 typename T::UNSIGNED_TYPE fromFloatHelper( float tf ) {
@@ -321,7 +346,8 @@ typename T::UNSIGNED_TYPE fromFloatHelper( float tf ) {
 
     float_ieee32 r;
     r.u = s << (T::EXPONENT_BITS + T::MANTISSA_BITS);
-    r.u |= (e + T::EXPONENT_BIAS);
+    e += T::EXPONENT_BIAS;
+    r.u |= (e << T::MANTISSA_BITS);
     m >>= (float_ieee32::MANTISSA_BITS - T::MANTISSA_BITS);
     r.u |= m;
 
