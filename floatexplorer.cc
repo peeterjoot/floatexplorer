@@ -33,6 +33,9 @@ union float_e4m3 {
     using UNSIGNED_TYPE = std::uint8_t;
     using SIGNED_TYPE = std::int8_t;
 
+    static constexpr UNSIGNED_TYPE EXPONENT_BITS = 4;
+    static constexpr UNSIGNED_TYPE MANTISSA_BITS = 3;
+
     UNSIGNED_TYPE u;
 #if defined HAVE_CUDA
     __nv_fp8_storage_t s;
@@ -57,6 +60,9 @@ union float_e4m3 {
 union float_e5m2 {
     using UNSIGNED_TYPE = std::uint8_t;
     using SIGNED_TYPE = std::int8_t;
+
+    static constexpr UNSIGNED_TYPE EXPONENT_BITS = 5;
+    static constexpr UNSIGNED_TYPE MANTISSA_BITS = 2;
 
     UNSIGNED_TYPE u;
 
@@ -84,6 +90,9 @@ union float_bf16 {
     using UNSIGNED_TYPE = std::uint16_t;
     using SIGNED_TYPE = std::int16_t;
 
+    static constexpr UNSIGNED_TYPE EXPONENT_BITS = 8;
+    static constexpr UNSIGNED_TYPE MANTISSA_BITS = 7;
+
     UNSIGNED_TYPE u;
 
 #if defined HAVE_CUDA
@@ -108,6 +117,9 @@ union float_bf16 {
 union float_fp16 {
     using UNSIGNED_TYPE = std::uint16_t;
     using SIGNED_TYPE = std::int16_t;
+
+    static constexpr UNSIGNED_TYPE EXPONENT_BITS = 5;
+    static constexpr UNSIGNED_TYPE MANTISSA_BITS = 10;
 
     UNSIGNED_TYPE u;
 
@@ -134,6 +146,9 @@ union float_ieee32 {
     using UNSIGNED_TYPE = std::uint32_t;
     using SIGNED_TYPE = std::int32_t;
 
+    static constexpr UNSIGNED_TYPE EXPONENT_BITS = 8;
+    static constexpr UNSIGNED_TYPE MANTISSA_BITS = 23;
+
     UNSIGNED_TYPE u;
 
     float s;
@@ -151,6 +166,9 @@ union float_ieee64 {
     using UNSIGNED_TYPE = std::uint64_t;
     using SIGNED_TYPE = std::int64_t;
 
+    static constexpr UNSIGNED_TYPE EXPONENT_BITS = 11;
+    static constexpr UNSIGNED_TYPE MANTISSA_BITS = 52;
+
     UNSIGNED_TYPE u;
     double s;
 
@@ -166,16 +184,16 @@ union float_ieee64 {
 // 
 // FIXME: These three are all almost identical, but differ just slightly (spacing.)
 //
-template <class T, unsigned EXPONENT_BITS, unsigned MANTISSA_BITS>
+template <class T>
 void print_float_representation_e4m3( T f )
 {
-    static constexpr typename T::UNSIGNED_TYPE EXPONENT_MASK = ( ( typename T::UNSIGNED_TYPE( 1 ) << EXPONENT_BITS ) - 1 );
-    static constexpr typename T::UNSIGNED_TYPE EXPONENT_BIAS ( ( typename T::UNSIGNED_TYPE( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+    static constexpr typename T::UNSIGNED_TYPE EXPONENT_MASK = ( ( typename T::UNSIGNED_TYPE( 1 ) << T::EXPONENT_BITS ) - 1 );
+    static constexpr typename T::UNSIGNED_TYPE EXPONENT_BIAS ( ( typename T::UNSIGNED_TYPE( 1 ) << ( T::EXPONENT_BITS - 1 ) ) - 1 );
 
     std::bitset<8*sizeof(T)> b = f.u;
     std::string bs = b.to_string();
-    typename T::UNSIGNED_TYPE mantissa = f.u & ( ( typename T::UNSIGNED_TYPE( 1 ) << MANTISSA_BITS ) - 1 );
-    typename T::UNSIGNED_TYPE exponent_with_bias = ( f.u >> MANTISSA_BITS ) & EXPONENT_MASK;
+    typename T::UNSIGNED_TYPE mantissa = f.u & ( ( typename T::UNSIGNED_TYPE( 1 ) << T::MANTISSA_BITS ) - 1 );
+    typename T::UNSIGNED_TYPE exponent_with_bias = ( f.u >> T::MANTISSA_BITS ) & EXPONENT_MASK;
     typename T::SIGNED_TYPE exponent;
 
     if ( exponent_with_bias && exponent_with_bias != EXPONENT_MASK )
@@ -191,10 +209,10 @@ void print_float_representation_e4m3( T f )
         exponent = 0;    // Zero
     }
 
-    typename T::UNSIGNED_TYPE sign = f.u >> ( EXPONENT_BITS + MANTISSA_BITS );
+    typename T::UNSIGNED_TYPE sign = f.u >> ( T::EXPONENT_BITS + T::MANTISSA_BITS );
 
-    auto mstring = bs.substr( 1 + EXPONENT_BITS, MANTISSA_BITS );
-    auto estring = bs.substr( 1, EXPONENT_BITS );
+    auto mstring = bs.substr( 1 + T::EXPONENT_BITS, T::MANTISSA_BITS );
+    auto estring = bs.substr( 1, T::EXPONENT_BITS );
 
     std::string fs = f.tostring();
 
@@ -246,16 +264,16 @@ void print_float_representation_e4m3( T f )
     }
 }
 
-template <class T, unsigned EXPONENT_BITS, unsigned MANTISSA_BITS>
+template <class T>
 void print_float_representation_e5m2( T f )
 {
-    static constexpr typename T::UNSIGNED_TYPE EXPONENT_MASK = ( ( typename T::UNSIGNED_TYPE( 1 ) << EXPONENT_BITS ) - 1 );
-    static constexpr typename T::UNSIGNED_TYPE EXPONENT_BIAS ( ( typename T::UNSIGNED_TYPE( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+    static constexpr typename T::UNSIGNED_TYPE EXPONENT_MASK = ( ( typename T::UNSIGNED_TYPE( 1 ) << T::EXPONENT_BITS ) - 1 );
+    static constexpr typename T::UNSIGNED_TYPE EXPONENT_BIAS ( ( typename T::UNSIGNED_TYPE( 1 ) << ( T::EXPONENT_BITS - 1 ) ) - 1 );
 
     std::bitset<8*sizeof(T)> b = f.u;
     std::string bs = b.to_string();
-    typename T::UNSIGNED_TYPE mantissa = f.u & ( ( typename T::UNSIGNED_TYPE( 1 ) << MANTISSA_BITS ) - 1 );
-    typename T::UNSIGNED_TYPE exponent_with_bias = ( f.u >> MANTISSA_BITS ) & EXPONENT_MASK;
+    typename T::UNSIGNED_TYPE mantissa = f.u & ( ( typename T::UNSIGNED_TYPE( 1 ) << T::MANTISSA_BITS ) - 1 );
+    typename T::UNSIGNED_TYPE exponent_with_bias = ( f.u >> T::MANTISSA_BITS ) & EXPONENT_MASK;
     typename T::SIGNED_TYPE exponent;
 
     if ( exponent_with_bias && exponent_with_bias != EXPONENT_MASK )
@@ -271,10 +289,10 @@ void print_float_representation_e5m2( T f )
         exponent = 0;    // Zero
     }
 
-    typename T::UNSIGNED_TYPE sign = f.u >> ( EXPONENT_BITS + MANTISSA_BITS );
+    typename T::UNSIGNED_TYPE sign = f.u >> ( T::EXPONENT_BITS + T::MANTISSA_BITS );
 
-    auto mstring = bs.substr( 1 + EXPONENT_BITS, MANTISSA_BITS );
-    auto estring = bs.substr( 1, EXPONENT_BITS );
+    auto mstring = bs.substr( 1 + T::EXPONENT_BITS, T::MANTISSA_BITS );
+    auto estring = bs.substr( 1, T::EXPONENT_BITS );
 
     std::string fs = f.tostring();
 
@@ -326,16 +344,16 @@ void print_float_representation_e5m2( T f )
     }
 }
 
-template <class T, unsigned EXPONENT_BITS, unsigned MANTISSA_BITS>
+template <class T>
 void print_float_representation( T f )
 {
-    static constexpr typename T::UNSIGNED_TYPE EXPONENT_MASK = ( ( typename T::UNSIGNED_TYPE( 1 ) << EXPONENT_BITS ) - 1 );
-    static constexpr typename T::UNSIGNED_TYPE EXPONENT_BIAS ( ( typename T::UNSIGNED_TYPE( 1 ) << ( EXPONENT_BITS - 1 ) ) - 1 );
+    static constexpr typename T::UNSIGNED_TYPE EXPONENT_MASK = ( ( typename T::UNSIGNED_TYPE( 1 ) << T::EXPONENT_BITS ) - 1 );
+    static constexpr typename T::UNSIGNED_TYPE EXPONENT_BIAS ( ( typename T::UNSIGNED_TYPE( 1 ) << ( T::EXPONENT_BITS - 1 ) ) - 1 );
 
     std::bitset<8*sizeof(T)> b = f.u;
     std::string bs = b.to_string();
-    typename T::UNSIGNED_TYPE mantissa = f.u & ( ( typename T::UNSIGNED_TYPE( 1 ) << MANTISSA_BITS ) - 1 );
-    typename T::UNSIGNED_TYPE exponent_with_bias = ( f.u >> MANTISSA_BITS ) & EXPONENT_MASK;
+    typename T::UNSIGNED_TYPE mantissa = f.u & ( ( typename T::UNSIGNED_TYPE( 1 ) << T::MANTISSA_BITS ) - 1 );
+    typename T::UNSIGNED_TYPE exponent_with_bias = ( f.u >> T::MANTISSA_BITS ) & EXPONENT_MASK;
     typename T::SIGNED_TYPE exponent;
 
     if ( exponent_with_bias && exponent_with_bias != EXPONENT_MASK )
@@ -351,10 +369,10 @@ void print_float_representation( T f )
         exponent = 0;    // Zero
     }
 
-    typename T::UNSIGNED_TYPE sign = f.u >> ( EXPONENT_BITS + MANTISSA_BITS );
+    typename T::UNSIGNED_TYPE sign = f.u >> ( T::EXPONENT_BITS + T::MANTISSA_BITS );
 
-    auto mstring = bs.substr( 1 + EXPONENT_BITS, MANTISSA_BITS );
-    auto estring = bs.substr( 1, EXPONENT_BITS );
+    auto mstring = bs.substr( 1 + T::EXPONENT_BITS, T::MANTISSA_BITS );
+    auto estring = bs.substr( 1, T::EXPONENT_BITS );
 
     std::string fs = f.tostring();
 
@@ -408,25 +426,22 @@ void print_float_representation( T f )
 
 void print_float_e4m3_representation( float_e4m3 f )
 {
-    print_float_representation_e4m3<float_e4m3, 4, 3>( f );
+    print_float_representation_e4m3<float_e4m3>( f );
 }
 
 void print_float_e5m2_representation( float_e5m2 f )
 {
-    print_float_representation_e5m2<float_e5m2, 5, 2>( f );
+    print_float_representation_e5m2<float_e5m2>( f );
 }
 
 using float32 = float;
-
-#define FLOAT32_MANTISSA_BITS 23
-#define FLOAT32_EXPONENT_BITS 8
 
 void print_float32_representation( float32 f )
 {
     float_ieee32 x;
     x.s = f;
 
-    print_float_representation<float_ieee32, FLOAT32_EXPONENT_BITS, FLOAT32_MANTISSA_BITS>( x );
+    print_float_representation<float_ieee32>( x );
 }
 
 #define FLOAT64_MANTISSA_BITS 52
@@ -994,7 +1009,7 @@ int main( int argc, char** argv )
             print_float32_representation( f );
 
             std::cout << "\nLargest denormal:\n";
-            denormal_bits = ( std::uint32_t( 1 ) << FLOAT32_MANTISSA_BITS ) - 1;
+            denormal_bits = ( std::uint32_t( 1 ) << float_ieee32::MANTISSA_BITS ) - 1;
             std::memcpy( &f, &denormal_bits, sizeof( float32 ) );
             print_float32_representation( f );
         }
