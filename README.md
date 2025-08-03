@@ -4,16 +4,17 @@ This is a little bit of code to dump the representation of some floating point t
 
 - e5m2,
 - e4m3,
-- fp16
-- bf16
-- 32-bit (C float), 
-- 64-bit (C double, and long double on some platforms),
-- 80-bit Intel long double (unlike the above, this one doesn't use the IEEE representation, and has an explicit leading mantissa bit.)
-- 128-bit (Linux ARM long double, GCC libquadmath)
+- fp16,
+- bf16,
+- ieee 32-bit (C float),
+- ieee 64-bit (C double, and long double on some platforms),
+- Intel 80-bit long double (unlike the above, this one doesn't use the IEEE representation, and has an explicit leading mantissa bit.)
+- ieee 128-bit (Linux ARM long double, GCC libquadmath)
 
 ## TODO
 
 - See if the HIP API can also do the conversion that I currently only support using the CUDA API.
+- Implement zArch mainframe "HEXFLOAT" types.
 
 ## Discussion
 
