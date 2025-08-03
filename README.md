@@ -55,12 +55,11 @@ MacOs:
 brew install gcc
 ```
 
-# CUDA dependencies (WIP.)
+# CUDA dependencies
 
-Support for two GPU types is implemented (e5m2, e4m3).  For string <> float conversions for these types, CUDA support is required (sort of 
-auto-detected in the makefile.)  If using Fedora, note that Fedora 42 (latest) is not currently supported by the cuda toolkit.
+Support for GPU types (e5m2, e4m3, fp16, bf16) has been implemented.  For string <> float conversions for these types, CUDA support is required (sort of auto-detected in the makefile.)  If using Fedora, note that Fedora 42 (latest) is not currently supported by the cuda toolkit.
 
-BF16, and FP16 TODO.
+The fedora41 installation sequence was something like:
 
 ```
 sudo dnf config-manager addrepo --from-repofile=https://developer.download.nvidia.com/compute/cuda/repos/fedora41/$(uname -m)/cuda-fedora41.repo
@@ -71,3 +70,4 @@ sudo dnf config-manager setopt cuda-fedora41-x86_64.exclude=
 sudo dnf install -y nvidia-driver-cuda --refresh
 ```
 
+... with some reboots in the mix.
