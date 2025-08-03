@@ -49,6 +49,8 @@ clean:
 	rm -rf *.dSYM
 
 test:
+	./floatexplorer --e4m3 3 | diff -up expected/e4m3.txt -
+	./floatexplorer --e5m2 3 | diff -up expected/e5m2.txt -
 	./floatexplorer --spe | diff -up expected/float.special.txt -
 	./floatexplorer --spe --double | diff -up expected/double.special.txt -
 #ifneq ($(OS),Darwin)

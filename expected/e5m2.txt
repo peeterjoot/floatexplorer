@@ -1,0 +1,8 @@
+value:    3
+hex:      42
+bits:     01000010
+sign:     0
+exponent:  10000                        (15 +1)
+mantissa:       10
+number:       1.10 x 2^(1)
+
