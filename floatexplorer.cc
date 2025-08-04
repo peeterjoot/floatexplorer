@@ -1,6 +1,17 @@
 //
-// This is a little program that unpacks a 32-bit or 64-bit IEEE floating point value (letting
-// std::bitset do the bitarray printing)
+// This is a little program that unpacks various floating point representations
+//
+// Supported floating point types include:
+// - e5m2,
+// - e4m3,
+// - fp16 (e5m10)
+// - bf16 (e8m7),
+// - ieee 32-bit (C float: e8m23),
+// - ieee 64-bit (C double, and long double on some platforms: e11m52),
+// - Intel 80-bit long double (e15m64: unlike most, this one doesn't use a IEEE like representation, and has an explicit leading mantissa bit)
+// - IEEE 128-bit (e15m112: Linux ARM long double, GCC libquadmath)
+//
+// std::bitset does the heavy lifting for the bitarray printing.
 //
 #include <getopt.h>
 #include <strings.h>
