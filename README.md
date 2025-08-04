@@ -16,28 +16,6 @@ This is a little bit of code to dump the representation of some floating point t
 - See if the HIP API can also do the float type conversions as a cross check.
 - Implement zArch mainframe "HEXFLOAT" types.
 
-BUGS (non-cuda tostring) include:
-
-```
-|         -Test value: 448
-|         +Test value: nan
-|          type: e4m3
-|         -value:    448
-|         +value:    nan
-|          hex:      7E
-|          bits:     01111110
-|          sign:     0
-|          exponent:  1111
-|          mantissa:      110
-|          number:  NaN
-```
-
-For the non-NaN mismatch, note that cuda results match the decompositions:
-
-* 0.0000001 x 2^(-126) = 2^(-127-7) = 9.18355*10^(-41)
-* FromDigits["1111111", 2] * 2^(-126 - 7) // N = 1.16631*10^(-38)
-
-
 ## Discussion
 
 An early version of the code is described here:
@@ -93,3 +71,17 @@ sudo dnf install -y nvidia-driver-cuda --refresh
 ```
 
 ... with some reboots in the mix.
+
+## CUDA bugs:
+
+Note that the CUDA 12.9 type conversion seems to misidentify some E4M3 NaNs, such as 0x7E.  Using:
+
+     __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E4M3 );
+     float output = __half2float( half );
+
+we get 448 instead of NaN (and not even 240, which would be the big-value if NaNs weren't supported.)
+
+i.e.: 240:
+```
+FromDigits["1111", 2]*2^(7 - 3)
+```

@@ -43,9 +43,9 @@ mantissa:      000
 number:      1.000 x 2^(-6)
 
 
-Test value: 448
+Test value: nan
 type: e4m3
-value:    448
+value:    nan
 hex:      7E
 bits:     01111110
 sign:     0

@@ -391,6 +391,16 @@ void float_fp16::fromFloat( float tf )
 std::string float_e4m3::tostring() const
 {
 #if defined HAVE_CUDA
+
+    UNSIGNED_TYPE emask = EXPONENT_MASK << MANTISSA_BITS;
+    // HACK: the cuda API appears to get values like 0x7e wrong (identifying 0x7f as NaN, but not 0x7E).
+    //
+    // An alternative is there is only on NaN in e4m3 and it's 0x7f, but then the value shouldn't be 448 (for 0x7e), but 240,
+    // so this CUDA conversion seems just wrong.
+    if ((u & emask) == emask &&
+        (u & ((1U << MANTISSA_BITS) - 1)) != 0)
+        return "nan";
+
     __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E4M3 );
     float output = __half2float( half );
 #else

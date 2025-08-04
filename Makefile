@@ -15,7 +15,7 @@ endif
 
 CUDA_VERSION := cuda-12.9
 NVCC := /usr/local/$(CUDA_VERSION)/bin/nvcc
-NVCC_EXISTS := $(wildcard $(NVCC))
+xNVCC_EXISTS := $(wildcard $(NVCC))
 
 ifneq ($(NVCC_EXISTS),)
 CXX := $(NVCC)
@@ -51,9 +51,7 @@ clean:
 test:
 	./floatexplorer --e4m3 3 | diff -pU20 expected/e4m3.txt -
 	./floatexplorer --e5m2 3 | diff -pU20 expected/e5m2.txt -
-ifneq ($(NVCC_EXISTS),)
 	./floatexplorer --spe --e4m3 | diff -pU20 expected/e4m3.special.txt -
-endif
 	./floatexplorer --spe --bf16 | diff -pU20 expected/bf16.special.txt -
 	./floatexplorer --spe --fp16 | diff -pU20 expected/fp16.special.txt -
 	./floatexplorer --spe --e5m2 | diff -pU20 expected/e5m2.special.txt -
