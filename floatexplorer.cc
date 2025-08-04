@@ -558,6 +558,7 @@ void print_float64_representation( float64 f )
 
 enum class option_values : int
 {
+    all_  = 'a',
     e5m2_ = '2',
     e4m3_ = '3',
     fp16_ = 'f',
@@ -921,9 +922,10 @@ __uint128_t stou128x( const char* str, char** endptr = nullptr )
 
 void printHelpAndExit()
 {
-    std::cout << "floatexplorer [--e5m2] [--e4m3] [--float] [--double] " FLOAT80_HELP FLOAT128_HELP
+    std::cout << "floatexplorer [--help] [--all] [--e5m2] [--e4m3] [--float] [--double] " FLOAT80_HELP FLOAT128_HELP
                  "[--special] number [number]*\n\n"
                  "Examples:\n"
+                 "floatexplorer --all 3\n"
                  "floatexplorer 1 -2 6 1.5 0.125 -inf # --float is the default\n"
                  "floatexplorer --double 1 -2 6 1.5 0.125 -inf\n"
                  "floatexplorer --float --double 1 # both representations\n"
@@ -944,8 +946,10 @@ int main( int argc, char** argv )
     bool dofloat80{};
     bool dofloat128{};
     bool specialcases{};
+    bool all{};
     const struct option long_options[] = {
         { "help", 0, NULL, (int)option_values::help_ },
+        { "all", 0, NULL, (int)option_values::all_ },
         { "e5m2", 0, NULL, (int)option_values::e5m2_ },
         { "e4m3", 0, NULL, (int)option_values::e4m3_ },
         { "bf16", 0, NULL, (int)option_values::bf16_ },
@@ -961,6 +965,9 @@ int main( int argc, char** argv )
     {
         switch ( option_values( c ) )
         {
+            case option_values::all_:
+                all = true;
+                break;
             case option_values::e5m2_:
                 dofloat_e5m2 = true;
                 break;
@@ -1001,6 +1008,17 @@ int main( int argc, char** argv )
             default:
                 printHelpAndExit();
         }
+    }
+
+    if ( all ) {
+        dofloat_e5m2 = true;
+        dofloat_e4m3 = true;
+        dofloat_bf16 = true;
+        dofloat_fp16 = true;
+        dofloat32 = true;
+        dofloat64 = true;
+        dofloat80 = true;
+        dofloat128 = true;
     }
 
     if ( !dofloat_e4m3 && !dofloat_e5m2 && !dofloat_bf16 && !dofloat_fp16 && !dofloat32 && !dofloat64 && !dofloat80 &&

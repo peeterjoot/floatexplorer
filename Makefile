@@ -15,7 +15,7 @@ endif
 
 CUDA_VERSION := cuda-12.9
 NVCC := /usr/local/$(CUDA_VERSION)/bin/nvcc
-xNVCC_EXISTS := $(wildcard $(NVCC))
+NVCC_EXISTS := $(wildcard $(NVCC))
 
 ifneq ($(NVCC_EXISTS),)
 CXX := $(NVCC)
