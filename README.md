@@ -4,12 +4,12 @@ This is a little bit of code to dump the representation of some floating point t
 
 - e5m2,
 - e4m3,
-- fp16,
-- bf16,
-- ieee 32-bit (C float),
-- ieee 64-bit (C double, and long double on some platforms),
-- Intel 80-bit long double (unlike the above, this one doesn't use the IEEE representation, and has an explicit leading mantissa bit.)
-- ieee 128-bit (Linux ARM long double, GCC libquadmath)
+- fp16 (e5m10)
+- bf16 (e8m7),
+- ieee 32-bit (C float: e8m23),
+- ieee 64-bit (C double, and long double on some platforms: e11m52),
+- Intel 80-bit long double (e15m64: unlike most, this one doesn't use a IEEE like representation, and has an explicit leading mantissa bit)
+- IEEE 128-bit (e15m112: Linux ARM long double, GCC libquadmath)
 
 ## TODO
 
