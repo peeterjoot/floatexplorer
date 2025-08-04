@@ -1,5 +1,6 @@
 
 Test value: 0
+type: bf16
 value:    0
 hex:      0000
 bits:     0000000000000000
@@ -10,6 +11,7 @@ number:          0.0000000 x 2^(0)
 
 
 Test value: -0
+type: bf16
 value:    -0
 hex:      8000
 bits:     1000000000000000
@@ -20,6 +22,7 @@ number:         -1.0000000 x 2^(0)
 
 
 Test value: inf
+type: bf16
 value:    inf
 hex:      7F80
 bits:     0111111110000000
@@ -30,6 +33,7 @@ number:    +inf
 
 
 Test value: -inf
+type: bf16
 value:    -inf
 hex:      FF80
 bits:     1111111110000000
@@ -40,6 +44,7 @@ number:    -inf
 
 
 Test value: nan
+type: bf16
 value:    nan
 hex:      7FC0
 bits:     0111111111000000
@@ -50,6 +55,7 @@ number:  NaN
 
 
 Test value: 1.1754944e-38
+type: bf16
 value:    1.1754944e-38
 hex:      0080
 bits:     0000000010000000
@@ -60,6 +66,7 @@ number:          1.0000000 x 2^(-126)
 
 
 Test value: inf
+type: bf16
 value:    inf
 hex:      7F80
 bits:     0111111110000000
@@ -70,6 +77,7 @@ number:    +inf
 
 
 Smallest denormal:
+type: bf16
 value:    9.1835e-41
 hex:      0001
 bits:     0000000000000001
@@ -80,6 +88,7 @@ number:          0.0000001 x 2^(-126)
 
 
 Largest denormal:
+type: bf16
 value:    1.1663108e-38
 hex:      007F
 bits:     0000000001111111

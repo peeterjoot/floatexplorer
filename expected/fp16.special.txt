@@ -1,5 +1,6 @@
 
 Test value: 0
+type: fp16
 value:    0
 hex:      0000
 bits:     0000000000000000
@@ -10,6 +11,7 @@ number:       0.0000000000 x 2^(0)
 
 
 Test value: -0
+type: fp16
 value:    -0
 hex:      8000
 bits:     1000000000000000
@@ -20,6 +22,7 @@ number:      -1.0000000000 x 2^(0)
 
 
 Test value: inf
+type: fp16
 value:    inf
 hex:      7C00
 bits:     0111110000000000
@@ -30,6 +33,7 @@ number:    +inf
 
 
 Test value: -inf
+type: fp16
 value:    -inf
 hex:      FC00
 bits:     1111110000000000
@@ -40,6 +44,7 @@ number:    -inf
 
 
 Test value: nan
+type: fp16
 value:    nan
 hex:      7E00
 bits:     0111111000000000
@@ -50,6 +55,7 @@ number:  NaN
 
 
 Test value: 6.1035156e-05
+type: fp16
 value:    6.1035156e-05
 hex:      0400
 bits:     0000010000000000
@@ -60,6 +66,7 @@ number:       1.0000000000 x 2^(-14)
 
 
 Test value: 65504
+type: fp16
 value:    65504
 hex:      7BFF
 bits:     0111101111111111
@@ -70,6 +77,7 @@ number:       1.1111111111 x 2^(15)
 
 
 Smallest denormal:
+type: fp16
 value:    5.9604645e-08
 hex:      0001
 bits:     0000000000000001
@@ -80,6 +88,7 @@ number:       0.0000000001 x 2^(-14)
 
 
 Largest denormal:
+type: fp16
 value:    6.097555e-05
 hex:      03FF
 bits:     0000001111111111
