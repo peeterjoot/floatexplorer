@@ -274,6 +274,7 @@ template <class T>
 float toFloat( T fu )
 {
     float_ieee32 r;
+    r.u = 0;
 
     typename T::UNSIGNED_TYPE s;
     typename T::SIGNED_TYPE e;
@@ -288,30 +289,35 @@ float toFloat( T fu )
     // handle \pm 0: don't set exponent bits:
     typename T::UNSIGNED_TYPE signTshift = T::EXPONENT_BITS + T::MANTISSA_BITS;
     typename T::UNSIGNED_TYPE signT = typename T::UNSIGNED_TYPE(s) << signTshift;
-    typename T::UNSIGNED_TYPE notSignTmask = (typename T::UNSIGNED_TYPE(1) << signTshift) - 1;
+    typename T::UNSIGNED_TYPE notSignTmask = (typename T::UNSIGNED_TYPE(1) << signTshift) - 1; // 7f
+    typename T::UNSIGNED_TYPE exponentTmask = notSignTmask & ~(typename T::UNSIGNED_TYPE(1) << T::MANTISSA_BITS) - 1;
+
+    // inf: all exponent bits set, mantissa clear.
+    // nan: all exponent bits set, and at least one mantissa bits set.
+    // \pm 0: just sign bit set.
     if ( signT == fu.u ) {
-        r.u = fsign;
+        // don't set the exponent bits.
+    } else if ( (fu.u & exponentTmask) == exponentTmask ) {
+        // \pm \infty, NaN
+        float_ieee32::UNSIGNED_TYPE notSignFmask = (float_ieee32::UNSIGNED_TYPE(1) << fsignShift) - 1;
+        float_ieee32::UNSIGNED_TYPE exponentFmask = notSignFmask & ~(float_ieee32::UNSIGNED_TYPE(1) << T::MANTISSA_BITS) - 1;
 
-        return r.s;
-    } else if ( (fu.u & notSignTmask) == notSignTmask ) {
-        // \pm \infty:
-        r.u |= ((float_ieee32::UNSIGNED_TYPE(1) << fsignShift) - 1);
+        r.u |= exponentFmask;
+    } else {
+        float_ieee32::UNSIGNED_TYPE fexponent = e;
+        fexponent += float_ieee32::EXPONENT_BIAS;
+        fexponent <<= float_ieee32::MANTISSA_BITS;
 
-        return r.s;
+        r.u |= fexponent;
     }
-
-    float_ieee32::UNSIGNED_TYPE fexponent = e;
-    fexponent += float_ieee32::EXPONENT_BIAS;
-    fexponent <<= float_ieee32::MANTISSA_BITS;
 
     float_ieee32::UNSIGNED_TYPE fmantissa = m;
     fmantissa <<= ( float_ieee32::MANTISSA_BITS - T::MANTISSA_BITS );
 
-    r.u = fsign | fexponent | fmantissa;
+    r.u |= fsign | fmantissa;
 
     return r.s;
 }
-
 
 // FIXME: Doesn't handle out of bounds... assumed valid.
 template <class T>
@@ -985,8 +991,8 @@ int main( int argc, char** argv )
             smallest_normal.s = __nv_cvt_float_to_fp8( 0.015625f, __NV_SATFINITE, __NV_E4M3 );
             largest_normal.s = __nv_cvt_float_to_fp8( 448.0f, __NV_SATFINITE, __NV_E4M3 );
 #else
-            smallest_normal.u = 0x01;
-            largest_normal.u = 0x07;
+            smallest_normal.u = 0x08;
+            largest_normal.u = 0x7E;
 #endif
             float_e4m3 tests[] = { { .u = 0x00 },    // +0
                                    { .u = 0x80 },    // -0
@@ -1015,8 +1021,8 @@ int main( int argc, char** argv )
             smallest_normal.s = __nv_cvt_float_to_fp8( 0.00006103515625f, __NV_SATFINITE, __NV_E5M2 );
             largest_normal.s = __nv_cvt_float_to_fp8( 57344.0f, __NV_SATFINITE, __NV_E5M2 );
 #else
-            smallest_normal.u = 0x01;
-            largest_normal.u = 0x03;
+            smallest_normal.u = 0x04;
+            largest_normal.u = 0x7B;
 #endif
             float_e5m2 tests[] = {
                 { .u = 0x00 },                 // +0
@@ -1049,8 +1055,8 @@ int main( int argc, char** argv )
             smallest_normal.s = __float2bfloat16( 1.17549435e-38f );
             largest_normal.s = __float2bfloat16( 3.4e38f );
 #else
-            smallest_normal.u = 0x0001;
-            largest_normal.u = 0x007F;
+            smallest_normal.u = 0x0080;
+            largest_normal.u = 0x7F80;
 #endif
             float_bf16 tests[] = {
                 { .u = 0x0000 },               // +0
@@ -1083,8 +1089,8 @@ int main( int argc, char** argv )
             smallest_normal.s = __float2half( 0.00006103515625f );
             largest_normal.s = __float2half( 65504.0f );
 #else
-            smallest_normal.u = 0x0001;
-            largest_normal.u = 0x03FF;
+            smallest_normal.u = 0x0400;
+            largest_normal.u = 0x7BFF;
 #endif
             float_fp16 tests[] = {
                 { .u = 0x0000 },               // +0
