@@ -271,14 +271,14 @@ void extract_float_representation( T f, typename T::UNSIGNED_TYPE& sign, typenam
 }
 
 template <class T>
-float toFloat( T fu )
+double toDouble( T fu )
 {
-    float_ieee32 r;
+    float_ieee64 r;
     r.u = 0;
 
     using U = typename T::UNSIGNED_TYPE;
     using S = typename T::SIGNED_TYPE;
-    using U32 = float_ieee32::UNSIGNED_TYPE;
+    using U64 = float_ieee64::UNSIGNED_TYPE;
 
     U s;
     S e;
@@ -286,8 +286,8 @@ float toFloat( T fu )
 
     extract_float_representation<T>( fu, s, e, m );
 
-    U32 fsign = s;
-    U32 fsignShift = float_ieee32::EXPONENT_BITS + float_ieee32::MANTISSA_BITS;
+    U64 fsign = s;
+    U64 fsignShift = float_ieee64::EXPONENT_BITS + float_ieee64::MANTISSA_BITS;
     fsign <<= fsignShift;
 
     // handle \pm 0: don't set exponent bits:
@@ -306,9 +306,9 @@ float toFloat( T fu )
         noExponent = true;
     } else if ( (fu.u & exponentMaskT) == exponentMaskT ) {
         // \pm \infty, NaN
-        U32 notSignFmask = (U32(1) << fsignShift) - 1;
+        U64 notSignFmask = (U64(1) << fsignShift) - 1;
 
-        r.u |= (float_ieee32::EXPONENT_MASK << float_ieee32::MANTISSA_BITS);
+        r.u |= (float_ieee64::EXPONENT_MASK << float_ieee64::MANTISSA_BITS);
         noExponent = true;
     } else if ( (fu.u & exponentMaskT) == 0 ) {
         // denormalized mantissa.  No implied leading one
@@ -322,15 +322,15 @@ float toFloat( T fu )
     }
 
     if ( !noExponent ) {
-        U32 fexponent = e;
-        fexponent += float_ieee32::EXPONENT_BIAS;
-        fexponent <<= float_ieee32::MANTISSA_BITS;
+        U64 fexponent = e;
+        fexponent += float_ieee64::EXPONENT_BIAS;
+        fexponent <<= float_ieee64::MANTISSA_BITS;
 
         r.u |= fexponent;
     }
 
-    U32 fmantissa = m;
-    fmantissa <<= ( float_ieee32::MANTISSA_BITS - T::MANTISSA_BITS);
+    U64 fmantissa = m;
+    fmantissa <<= ( float_ieee64::MANTISSA_BITS - T::MANTISSA_BITS);
 
     r.u |= fsign | fmantissa;
 
@@ -394,7 +394,7 @@ std::string float_e4m3::tostring() const
     __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E4M3 );
     float output = __half2float( half );
 #else
-    float output = toFloat<float_e4m3>( *this );
+    float output = (float)toDouble<float_e4m3>( *this );
 #endif
 
     return std::format( "{}", output );
@@ -406,7 +406,7 @@ std::string float_e5m2::tostring() const
     __half half = __nv_cvt_fp8_to_halfraw( s, __NV_E5M2 );
     float output = __half2float( half );
 #else
-    float output = toFloat<float_e5m2>( *this );
+    float output = (float)toDouble<float_e5m2>( *this );
 #endif
 
     return std::format( "{}", output );
@@ -417,7 +417,7 @@ std::string float_bf16::tostring() const
 #if defined HAVE_CUDA
     float output = __bfloat162float( s );
 #else
-    float output = toFloat<float_bf16>( *this );
+    float output = (float)toDouble<float_bf16>( *this );
 #endif
 
     return std::format( "{}", output );
@@ -428,7 +428,7 @@ std::string float_fp16::tostring() const
 #if defined HAVE_CUDA
     float output = __half2float( s );
 #else
-    float output = toFloat<float_fp16>( *this );
+    float output = (float)toDouble<float_fp16>( *this );
 #endif
 
     return std::format( "{}", output );
