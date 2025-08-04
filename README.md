@@ -16,6 +16,37 @@ This is a little bit of code to dump the representation of some floating point t
 - See if the HIP API can also do the conversion that I currently only support using the CUDA API.
 - Implement zArch mainframe "HEXFLOAT" types.
 
+BUGS (non-cuda tostring):
+
+```
+|          Smallest denormal:
+|          type: bf16
+|         -value:    9.1835e-41
+|         +value:    -1.0633824e+37
+|          hex:      0001
+|          bits:     0000000000000001
+|          sign:     0
+|          exponent:  00000000                        (0-126)
+|          mantissa:          0000001
+|          number:          0.0000001 x 2^(-126)
+|
+|          Largest denormal:
+|          type: bf16
+|         -value:    1.1663108e-38
+|         +value:    1.1571273e-38
+|          hex:      007F
+|          bits:     0000000001111111
+|          sign:     0
+|          exponent:  00000000                        (0-126)
+|          mantissa:          1111111
+|          number:          0.1111111 x 2^(-126)
+```
+
+cuda results match decompositions:
+
+* 0.0000001 x 2^(-126) = 2^(-127-7) = 9.18355*10^(-41)
+* FromDigits["1111111", 2] * 2^(-126 - 7) // N = 1.16631*10^(-38)
+
 ## Discussion
 
 An early version of the code is described here:
