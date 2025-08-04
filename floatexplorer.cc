@@ -273,16 +273,32 @@ void extract_float_representation( T f, typename T::UNSIGNED_TYPE& sign, typenam
 template <class T>
 float toFloat( T fu )
 {
+    float_ieee32 r;
+
     typename T::UNSIGNED_TYPE s;
     typename T::SIGNED_TYPE e;
     typename T::UNSIGNED_TYPE m;
 
     extract_float_representation<T>( fu, s, e, m );
 
-    float_ieee32 r;
-
     float_ieee32::UNSIGNED_TYPE fsign = s;
-    fsign <<= ( float_ieee32::EXPONENT_BITS + float_ieee32::MANTISSA_BITS );
+    float_ieee32::UNSIGNED_TYPE fsignShift = float_ieee32::EXPONENT_BITS + float_ieee32::MANTISSA_BITS;
+    fsign <<= fsignShift;
+
+    // handle \pm 0: don't set exponent bits:
+    typename T::UNSIGNED_TYPE signTshift = T::EXPONENT_BITS + T::MANTISSA_BITS;
+    typename T::UNSIGNED_TYPE signT = typename T::UNSIGNED_TYPE(s) << signTshift;
+    typename T::UNSIGNED_TYPE notSignTmask = (typename T::UNSIGNED_TYPE(1) << signTshift) - 1;
+    if ( signT == fu.u ) {
+        r.u = fsign;
+
+        return r.s;
+    } else if ( (fu.u & notSignTmask) == notSignTmask ) {
+        // \pm \infty:
+        r.u |= ((float_ieee32::UNSIGNED_TYPE(1) << fsignShift) - 1);
+
+        return r.s;
+    }
 
     float_ieee32::UNSIGNED_TYPE fexponent = e;
     fexponent += float_ieee32::EXPONENT_BIAS;
@@ -310,8 +326,16 @@ typename T::UNSIGNED_TYPE fromFloatHelper( float tf )
 
     extract_float_representation<float_ieee32>( f, s, e, m );
 
-    float_ieee32 r;
-    r.u = s << ( T::EXPONENT_BITS + T::MANTISSA_BITS );
+    float_ieee32::UNSIGNED_TYPE signbit32 = s << (float_ieee32::EXPONENT_BITS + float_ieee32::MANTISSA_BITS);
+
+    T r;
+    r.u = s << (T::EXPONENT_BITS + T::MANTISSA_BITS);
+
+    // +- zero: don't set any exponent bits:
+    if ( f.u == signbit32 ) {
+       return r.u;
+    }
+
     e += T::EXPONENT_BIAS;
     r.u |= ( e << T::MANTISSA_BITS );
     m >>= ( float_ieee32::MANTISSA_BITS - T::MANTISSA_BITS );
@@ -953,16 +977,22 @@ int main( int argc, char** argv )
 
     if ( specialcases )
     {
-#if defined HAVE_CUDA
         if ( dofloat_e4m3 )
         {
-            float_e4m3 tests[] = {
-                { .u = 0x00 },                                                             // +0
-                { .u = 0x80 },                                                             // -0
-                { .u = 0x7F },                                                             // NaN
-                { .s = __nv_cvt_float_to_fp8( 0.015625f, __NV_SATFINITE, __NV_E4M3 ) },    // Smallest normal ~2^-6
-                { .s = __nv_cvt_float_to_fp8( 448.0f, __NV_SATFINITE, __NV_E4M3 ) },       // Largest normal
-            };
+            float_e4m3 smallest_normal;
+            float_e4m3 largest_normal;
+#if defined HAVE_CUDA
+            smallest_normal.s = __nv_cvt_float_to_fp8( 0.015625f, __NV_SATFINITE, __NV_E4M3 );
+            largest_normal.s = __nv_cvt_float_to_fp8( 448.0f, __NV_SATFINITE, __NV_E4M3 );
+#else
+            smallest_normal.u = 0x01;
+            largest_normal.u = 0x07;
+#endif
+            float_e4m3 tests[] = { { .u = 0x00 },    // +0
+                                   { .u = 0x80 },    // -0
+                                   { .u = 0x7F },    // NaN
+                                   { .u = smallest_normal.u },
+                                   { .u = largest_normal.u } };
             for ( auto test : tests )
             {
                 std::cout << "\nTest value: " << test.tostring() << "\n";
@@ -979,14 +1009,23 @@ int main( int argc, char** argv )
 
         if ( dofloat_e5m2 )
         {
+            float_e5m2 smallest_normal;
+            float_e5m2 largest_normal;
+#if defined HAVE_CUDA
+            smallest_normal.s = __nv_cvt_float_to_fp8( 0.00006103515625f, __NV_SATFINITE, __NV_E5M2 );
+            largest_normal.s = __nv_cvt_float_to_fp8( 57344.0f, __NV_SATFINITE, __NV_E5M2 );
+#else
+            smallest_normal.u = 0x01;
+            largest_normal.u = 0x03;
+#endif
             float_e5m2 tests[] = {
-                { .u = 0x00 },                                                                     // +0
-                { .u = 0x80 },                                                                     // -0
-                { .u = 0x7C },                                                                     // +Infinity
-                { .u = 0xFC },                                                                     // -Infinity
-                { .u = 0x7F },                                                                     // NaN
-                { .s = __nv_cvt_float_to_fp8( 0.00006103515625f, __NV_SATFINITE, __NV_E5M2 ) },    // Smallest normal
-                { .s = __nv_cvt_float_to_fp8( 57344.0f, __NV_SATFINITE, __NV_E5M2 ) },             // Largest normal
+                { .u = 0x00 },                 // +0
+                { .u = 0x80 },                 // -0
+                { .u = 0x7C },                 // +Infinity
+                { .u = 0xFC },                 // -Infinity
+                { .u = 0x7F },                 // NaN
+                { .u = smallest_normal.u },    // Smallest normal
+                { .u = largest_normal.u },     // Largest normal
             };
             for ( auto test : tests )
             {
@@ -1004,14 +1043,23 @@ int main( int argc, char** argv )
 
         if ( dofloat_bf16 )
         {
+            float_bf16 smallest_normal;
+            float_bf16 largest_normal;
+#if defined HAVE_CUDA
+            smallest_normal.s = __float2bfloat16( 1.17549435e-38f );
+            largest_normal.s = __float2bfloat16( 3.4e38f );
+#else
+            smallest_normal.u = 0x0001;
+            largest_normal.u = 0x007F;
+#endif
             float_bf16 tests[] = {
-                { .u = 0x0000 },                                 // +0
-                { .u = 0x8000 },                                 // -0
-                { .u = 0x7F80 },                                 // +Infinity
-                { .u = 0xFF80 },                                 // -Infinity
-                { .u = 0x7FC0 },                                 // NaN
-                { .s = __float2bfloat16( 1.17549435e-38f ) },    // Smallest normal
-                { .s = __float2bfloat16( 3.4e38f ) },            // Largest normal
+                { .u = 0x0000 },               // +0
+                { .u = 0x8000 },               // -0
+                { .u = 0x7F80 },               // +Infinity
+                { .u = 0xFF80 },               // -Infinity
+                { .u = 0x7FC0 },               // NaN
+                { .u = smallest_normal.u },    // Smallest normal
+                { .u = largest_normal.u },     // Largest normal
             };
             for ( auto test : tests )
             {
@@ -1029,14 +1077,23 @@ int main( int argc, char** argv )
 
         if ( dofloat_fp16 )
         {
+            float_fp16 smallest_normal;
+            float_fp16 largest_normal;
+#if defined HAVE_CUDA
+            smallest_normal.s = __float2half( 0.00006103515625f );
+            largest_normal.s = __float2half( 65504.0f );
+#else
+            smallest_normal.u = 0x0001;
+            largest_normal.u = 0x03FF;
+#endif
             float_fp16 tests[] = {
-                { .u = 0x0000 },                               // +0
-                { .u = 0x8000 },                               // -0
-                { .u = 0x7C00 },                               // +Infinity
-                { .u = 0xFC00 },                               // -Infinity
-                { .u = 0x7E00 },                               // NaN
-                { .s = __float2half( 0.00006103515625f ) },    // Smallest normal
-                { .s = __float2half( 65504.0f ) },             // Largest normal
+                { .u = 0x0000 },               // +0
+                { .u = 0x8000 },               // -0
+                { .u = 0x7C00 },               // +Infinity
+                { .u = 0xFC00 },               // -Infinity
+                { .u = 0x7E00 },               // NaN
+                { .u = smallest_normal.u },    // Smallest normal
+                { .u = largest_normal.u },     // Largest normal
             };
             for ( auto test : tests )
             {
@@ -1051,7 +1108,6 @@ int main( int argc, char** argv )
             f.u = 0x03FF;    // 2^-14 * 0.99951171875
             print_float_fp16_representation( f );
         }
-#endif
 
         if ( dofloat32 )
         {
