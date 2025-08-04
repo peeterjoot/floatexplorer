@@ -276,43 +276,61 @@ float toFloat( T fu )
     float_ieee32 r;
     r.u = 0;
 
-    typename T::UNSIGNED_TYPE s;
-    typename T::SIGNED_TYPE e;
-    typename T::UNSIGNED_TYPE m;
+    using U = typename T::UNSIGNED_TYPE;
+    using S = typename T::SIGNED_TYPE;
+    using U32 = float_ieee32::UNSIGNED_TYPE;
+
+    U s;
+    S e;
+    U m;
 
     extract_float_representation<T>( fu, s, e, m );
 
-    float_ieee32::UNSIGNED_TYPE fsign = s;
-    float_ieee32::UNSIGNED_TYPE fsignShift = float_ieee32::EXPONENT_BITS + float_ieee32::MANTISSA_BITS;
+    U32 fsign = s;
+    U32 fsignShift = float_ieee32::EXPONENT_BITS + float_ieee32::MANTISSA_BITS;
     fsign <<= fsignShift;
 
     // handle \pm 0: don't set exponent bits:
-    typename T::UNSIGNED_TYPE signTshift = T::EXPONENT_BITS + T::MANTISSA_BITS;
-    typename T::UNSIGNED_TYPE signT = typename T::UNSIGNED_TYPE(s) << signTshift;
-    typename T::UNSIGNED_TYPE notSignTmask = (typename T::UNSIGNED_TYPE(1) << signTshift) - 1; // 7f
-    typename T::UNSIGNED_TYPE exponentTmask = notSignTmask & ~(typename T::UNSIGNED_TYPE(1) << T::MANTISSA_BITS) - 1;
+    U signTshift = T::EXPONENT_BITS + T::MANTISSA_BITS;
+    U signT = U(s) << signTshift;
+    U notSignTmask = (U(1) << signTshift) - 1;
+    U exponentMaskT = T::EXPONENT_MASK << T::MANTISSA_BITS;
+
+    bool noExponent{};
 
     // inf: all exponent bits set, mantissa clear.
     // nan: all exponent bits set, and at least one mantissa bits set.
     // \pm 0: just sign bit set.
     if ( signT == fu.u ) {
         // don't set the exponent bits.
-    } else if ( (fu.u & exponentTmask) == exponentTmask ) {
+        noExponent = true;
+    } else if ( (fu.u & exponentMaskT) == exponentMaskT ) {
         // \pm \infty, NaN
-        float_ieee32::UNSIGNED_TYPE notSignFmask = (float_ieee32::UNSIGNED_TYPE(1) << fsignShift) - 1;
-        float_ieee32::UNSIGNED_TYPE exponentFmask = notSignFmask & ~(float_ieee32::UNSIGNED_TYPE(1) << T::MANTISSA_BITS) - 1;
+        U32 notSignFmask = (U32(1) << fsignShift) - 1;
 
-        r.u |= exponentFmask;
-    } else {
-        float_ieee32::UNSIGNED_TYPE fexponent = e;
+        r.u |= (float_ieee32::EXPONENT_MASK << float_ieee32::MANTISSA_BITS);
+        noExponent = true;
+    } else if ( (fu.u & exponentMaskT) == 0 ) {
+        // denormalized mantissa.  No implied leading one
+        U leading = std::countl_zero(m);
+        U shift = 1 + leading - 8 * sizeof(U) + T::MANTISSA_BITS;
+        m <<= shift;
+        e -= shift;
+
+        U mmask = ((U(1) << T::MANTISSA_BITS) - 1);
+        m &= mmask;
+    }
+
+    if ( !noExponent ) {
+        U32 fexponent = e;
         fexponent += float_ieee32::EXPONENT_BIAS;
         fexponent <<= float_ieee32::MANTISSA_BITS;
 
         r.u |= fexponent;
     }
 
-    float_ieee32::UNSIGNED_TYPE fmantissa = m;
-    fmantissa <<= ( float_ieee32::MANTISSA_BITS - T::MANTISSA_BITS );
+    U32 fmantissa = m;
+    fmantissa <<= ( float_ieee32::MANTISSA_BITS - T::MANTISSA_BITS);
 
     r.u |= fsign | fmantissa;
 
