@@ -51,10 +51,12 @@ clean:
 test:
 	./floatexplorer --e4m3 3 | diff -pU20 expected/e4m3.txt -
 	./floatexplorer --e5m2 3 | diff -pU20 expected/e5m2.txt -
+ifneq ($(NVCC_EXISTS),)
 	./floatexplorer --spe --e4m3 | diff -pU20 expected/e4m3.special.txt -
-	./floatexplorer --spe --e5m2 | diff -pU20 expected/e5m2.special.txt -
-	./floatexplorer --spe --fp16 | diff -pU20 expected/fp16.special.txt -
 	./floatexplorer --spe --bf16 | diff -pU20 expected/bf16.special.txt -
+endif
+	./floatexplorer --spe --fp16 | diff -pU20 expected/fp16.special.txt -
+	./floatexplorer --spe --e5m2 | diff -pU20 expected/e5m2.special.txt -
 	./floatexplorer --spe | diff -pU20 expected/float.special.txt -
 	./floatexplorer --spe --double | diff -pU20 expected/double.special.txt -
 #ifneq ($(OS),Darwin)
