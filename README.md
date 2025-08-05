@@ -15,6 +15,34 @@ This is a little bit of code to dump the representation of some floating point t
 
 - See if the HIP API can also do the float type conversions as a cross check.
 - Implement zArch mainframe "HEXFLOAT" types.
+- Review outputs for E4M3 for:
+
+    ./floatexplorer --e4m3 0x78
+    ./floatexplorer --e4m3 0xF8
+    ./floatexplorer --e4m3 0xF9
+    ./floatexplorer --e4m3 0xFA
+    ./floatexplorer --e4m3 0xFB
+    ./floatexplorer --e4m3 0xFC
+    ./floatexplorer --e4m3 0xFD
+    ./floatexplorer --e4m3 0xFE
+    ./floatexplorer --e4m3 0xFF
+
+(testbin/e4m3.sh: get different results for these in CUDA vs. non-CUDA configurations.)
+
+- Same thing for:
+
+    ./floatexplorer --e5m2 0xFD
+    ./floatexplorer --e5m2 0xFE
+    ./floatexplorer --e5m2 0xFF
+
+(testbin/e5m2.sh)
+
+- Review outputs from:
+
+./testbin/bf16.sh | tee expected/bf16.all.txt
+./testbin/fp16.sh | tee expected/fp16.all.txt
+
+(those were generated with CUDA conversion api -- compare to non-CUDA)
 
 ## Discussion
 

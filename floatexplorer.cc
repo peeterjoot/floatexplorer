@@ -933,7 +933,7 @@ __uint128_t stou128x( const char* str, char** endptr = nullptr )
 
 void printHelpAndExit()
 {
-    std::cout << "floatexplorer [--help] [--all] [--e5m2] [--e4m3] [--float] [--double] " FLOAT80_HELP FLOAT128_HELP
+    std::cout << "floatexplorer [--help] [--all] [--e5m2] [--e4m3] [--fp16] [--bf16] [--float] [--double] " FLOAT80_HELP FLOAT128_HELP
                  "[--special] number [number]*\n\n"
                  "Examples:\n"
                  "floatexplorer --all 3\n"

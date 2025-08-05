@@ -49,6 +49,8 @@ clean:
 	rm -rf *.dSYM
 
 test:
+	./testbin/e4m3.sh | diff -pU100 expected/e4m3.all.txt -
+	./testbin/e5m2.sh | diff -pU100 expected/e5m2.all.txt -
 	./floatexplorer --e4m3 3 | diff -pU20 expected/e4m3.txt -
 	./floatexplorer --e5m2 3 | diff -pU20 expected/e5m2.txt -
 	./floatexplorer --spe --e4m3 | diff -pU20 expected/e4m3.special.txt -
