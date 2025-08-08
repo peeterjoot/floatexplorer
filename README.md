@@ -85,20 +85,20 @@ brew install gcc
 
 # CUDA dependencies
 
-Support for GPU types (e5m2, e4m3, fp16, bf16) has been implemented.  For string <> float conversions for these types, CUDA support is used if available (rudimentary auto-detection in the makefile.)  If using Fedora, note that Fedora 42 (latest) is not currently supported by the cuda toolkit.
+Support for GPU types (e5m2, e4m3, fp16, bf16) has been implemented.  For string <> float conversions for these types, CUDA support is used if available (rudimentary auto-detection in the makefile.)  CUDA is very specific about which fedora versions are required.  CUDA 12.9 did not work on any version higher than fedora 41, and CUDA 13 is required for Fedora 42 (latest.)
 
-The fedora41 installation sequence was something like:
+The fedora42 installation sequence was:
 
 ```
-sudo dnf config-manager addrepo --from-repofile=https://developer.download.nvidia.com/compute/cuda/repos/fedora41/$(uname -m)/cuda-fedora41.repo
+sudo dnf config-manager addrepo --from-repofile=https://developer.download.nvidia.com/compute/cuda/repos/fedora42/$(uname -m)/cuda-fedora42.repo
 sudo dnf module disable nvidia-driver
-sudo dnf config-manager setopt cuda-fedora41-$(uname -m).exclude=nvidia-driver,nvidia-modprobe,nvidia-persistenced,nvidia-settings,nvidia-libXNVCtrl,nvidia-xconfig
+sudo dnf config-manager setopt cuda-fedora42-$(uname -m).exclude=nvidia-driver,nvidia-modprobe,nvidia-persistenced,nvidia-settings,nvidia-libXNVCtrl,nvidia-xconfig
 sudo dnf -y install cuda-toolkit
-sudo dnf config-manager setopt cuda-fedora41-x86_64.exclude=
+sudo dnf config-manager setopt cuda-fedora42-x86_64.exclude=
 sudo dnf install -y nvidia-driver-cuda --refresh
 ```
 
-... with some reboots in the mix.
+... with some reboots in the mix, and lots of uninstalls to remove artifacts of having attempted to installed cuda-12.9.
 
 ## CUDA bugs:
 

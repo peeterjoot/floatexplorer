@@ -407,7 +407,7 @@ std::string float_e4m3::tostring() const
     // HACK: the cuda API appears to get values like 0x7e wrong (identifying 0x7f as NaN, but not 0x7E).
     //
     // An alternative is there is only on NaN in e4m3 and it's 0x7f, but then the value shouldn't be 448 (for 0x7e), but 240,
-    // so this CUDA conversion seems just wrong.
+    // so this CUDA conversion seems just wrong -- same issue in cuda-12.9 and cuda-13.0
     if ((u & emask) == emask &&
         (u & ((1U << MANTISSA_BITS) - 1)) != 0)
         return "nan";

@@ -13,7 +13,9 @@ CXXFLAGS += -DUSE_QUADMATH
 #CXXFLAGS += -gdwarf-4
 endif
 
-CUDA_VERSION := cuda-12.9
+# this is a crude selection mechanism.  should be wildcard based with extraction:
+#CUDA_VERSION := cuda-12.9
+CUDA_VERSION := cuda-13.0
 NVCC := /usr/local/$(CUDA_VERSION)/bin/nvcc
 NVCC_EXISTS := $(wildcard $(NVCC))
 
