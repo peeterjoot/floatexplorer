@@ -27,6 +27,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 
 #if defined HAVE_CUDA
 #include <cuda_bf16.h>
@@ -34,6 +35,43 @@
 #include <cuda_fp8.h>
 #endif
 
+std::unordered_map<std::string, uint8_t> E4M3_named{
+    {"0", 0x00},
+    {"+0", 0x00},
+    {"-0", 0x80},
+    {"nan", 0x7F}
+};
+
+std::unordered_map<std::string, uint8_t> E5M2_named{
+    { "0", 0x00 },
+    { "-0", 0x80 },
+    { "inf", 0x7C },
+    { "+inf", 0x7C },
+    { "-inf", 0xFC },
+    { "nan", 0x7F }
+};
+
+// e8m7
+std::unordered_map<std::string, uint16_t> BF16_named{
+    { "0", 0x0000 },
+    { "+0", 0x0000 },
+    { "-0", 0x8000 },
+    { "inf", 0x7F80 },
+    { "+inf", 0x7F80 },
+    { "-inf", 0xFF80 },
+    { "nan", 0x7FC0 }
+};
+
+// e5m10
+std::unordered_map<std::string, uint16_t> FP16_named{
+    { "0", 0x0000 },
+    { "+0", 0x0000 },
+    { "-0", 0x8000 },
+    { "inf", 0x7C00 },
+    { "+inf", 0x7C00 },
+    { "-inf", 0xFC00 },
+    { "nan", 0x7E00 }
+};
 
 // Type        Exponent-Size   Exponent-Bias Format    (Sign.Exponent.Mantissa)
 // FP8 E4M3    4 bits          7                       1.4.3
@@ -945,6 +983,12 @@ void printHelpAndExit()
     std::exit( 0 );
 }
 
+inline float mystof( const char * s )
+{
+    long double ld = std::stold( s );
+    return ld;
+}
+
 int main( int argc, char** argv )
 {
     int c;
@@ -1301,7 +1345,13 @@ int main( int argc, char** argv )
                 if ( dofloat_bf16 )
                 {
                     float_bf16 f;
-                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                    auto find = BF16_named.find( argv[i] );
+
+                    if ( find != BF16_named.end() )
+                    {
+                        f.u = find->second;
+                    }
+                    else if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                     {
                         unsigned long t = std::stoul( argv[i], nullptr, 16 );
                         if ( t <= UINT16_MAX )
@@ -1317,7 +1367,7 @@ int main( int argc, char** argv )
                     }
                     else
                     {
-                        float tf = std::stof( argv[i] );
+                        float tf = mystof( argv[i] );
 #if defined HAVE_CUDA
                         __nv_bfloat16 bf16 = __float2bfloat16( tf );
                         f.s = bf16;
@@ -1331,7 +1381,13 @@ int main( int argc, char** argv )
                 if ( dofloat_fp16 )
                 {
                     float_fp16 f;
-                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                    auto find = FP16_named.find( argv[i] );
+
+                    if ( find != FP16_named.end() )
+                    {
+                        f.u = find->second;
+                    }
+                    else if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                     {
                         unsigned long t = std::stoul( argv[i], nullptr, 16 );
                         if ( t <= UINT16_MAX )
@@ -1347,7 +1403,7 @@ int main( int argc, char** argv )
                     }
                     else
                     {
-                        float tf = std::stof( argv[i] );
+                        float tf = mystof( argv[i] );
 #if defined HAVE_CUDA
                         __half fp16 = __float2half( tf );
                         f.s = fp16;
@@ -1361,7 +1417,13 @@ int main( int argc, char** argv )
                 if ( dofloat_e4m3 )
                 {
                     float_e4m3 f;
-                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                    auto find = E4M3_named.find( argv[i] );
+
+                    if ( find != E4M3_named.end() )
+                    {
+                        f.u = find->second;
+                    }
+                    else if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                     {
                         unsigned long t = std::stoul( argv[i], nullptr, 16 );
                         if ( t <= UINT8_MAX )
@@ -1377,7 +1439,7 @@ int main( int argc, char** argv )
                     }
                     else
                     {
-                        float tf = std::stof( argv[i] );
+                        float tf = mystof( argv[i] );
 #if defined HAVE_CUDA
                         __nv_fp8_storage_t fp8 = __nv_cvt_float_to_fp8( tf, __NV_SATFINITE, __NV_E4M3 );
                         f.s = fp8;
@@ -1391,7 +1453,13 @@ int main( int argc, char** argv )
                 if ( dofloat_e5m2 )
                 {
                     float_e5m2 f;
-                    if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
+                    auto find = E5M2_named.find( argv[i] );
+
+                    if ( find != E5M2_named.end() )
+                    {
+                        f.u = find->second;
+                    }
+                    else if ( strncasecmp( argv[i], "0x", 2 ) == 0 )
                     {
                         unsigned long t = std::stoul( argv[i], nullptr, 16 );
                         if ( t <= UINT8_MAX )
@@ -1407,7 +1475,7 @@ int main( int argc, char** argv )
                     }
                     else
                     {
-                        float tf = std::stof( argv[i] );
+                        float tf = mystof( argv[i] );
 #if defined HAVE_CUDA
                         __nv_fp8_storage_t fp8 = __nv_cvt_float_to_fp8( tf, __NV_SATFINITE, __NV_E5M2 );
                         f.s = fp8;
@@ -1439,7 +1507,7 @@ int main( int argc, char** argv )
                     }
                     else
                     {
-                        f = std::stof( argv[i] );
+                        f = mystof( argv[i] );
                     }
                     print_float32_representation( f );
                 }
